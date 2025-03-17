@@ -3,12 +3,15 @@ import cors from 'cors'
 import dotenv from 'dotenv'
 import { apiRoutes } from './routes/v1'
 import { setupSwagger } from './swagger'
-import { clerkClient, getAuth, requireAuth } from '@clerk/express'
+import { clerkClient, clerkMiddleware, getAuth, requireAuth } from '@clerk/express'
 
 dotenv.config()
 
 //* Create an Express application
 const app = express()
+
+app.use(clerkMiddleware())
+
 
 //* Middleware to parse JSON bodies
 app.use(cors())

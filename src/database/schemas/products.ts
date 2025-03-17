@@ -26,7 +26,7 @@ export const Products = pgTable('products', {
   duration: integer().notNull(),
   images: text('images').array().default(['']),
   videos: text('videos').array().default(['']),
-  files: text('images').array().default(['']),
+  files: text('files').array().default(['']),
   banner: text('banner'),
 
   product_service_id: uuid()
