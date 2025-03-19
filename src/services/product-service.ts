@@ -99,8 +99,15 @@ export const getProductByIdService = async (productId: string) => {
         id: TargetProductAudiences.id,
         name: TargetProductAudiences.name,
       },
+
+      average_rating: sql<number>`COALESCE(AVG(${Ratings.rating}), 0)`.as(
+        'average_rating',
+      ),
+      total_reviews: sql<number>`COUNT(${Ratings.id})`.as('total_reviews'),
     })
     .from(Products)
+    .where(and(eq(Products.id, productId), eq(Products.is_approved, true)))
+    .leftJoin(Ratings, eq(Products.id, Ratings.product_id))
     .leftJoin(
       ProductCategories,
       eq(Products.product_category_id, ProductCategories.id),
@@ -109,7 +116,7 @@ export const getProductByIdService = async (productId: string) => {
       TargetProductAudiences,
       eq(Products.target_product_audience_id, TargetProductAudiences.id),
     )
-    .where(and(eq(Products.id, productId), eq(Products.is_approved, true)))
+    .groupBy(Products.id, ProductCategories.id, TargetProductAudiences.id)
     .limit(1)
 
   return product[0]
