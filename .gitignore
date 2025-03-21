@@ -3,3 +3,7 @@ node_modules
 dist
 .eslintcache
 coverage
+
+# misc
+.DS_Store
+*.pem

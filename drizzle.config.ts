@@ -1,4 +1,6 @@
 import 'dotenv/config'
+import fs from 'fs';
+import path from 'path';
 import { type Config, defineConfig } from 'drizzle-kit'
 
 export default defineConfig({
@@ -11,7 +13,12 @@ export default defineConfig({
     user: process.env.DB_USERNAME!,
     password: process.env.DB_PASSWORD!,
     database: process.env.DB_NAME!,
-    ssl: true,
+    ssl: {
+      rejectUnauthorized: true,
+      /* ca: fs.readFileSync(
+        path.join(__dirname, 'us-east-2-bundle.pem')
+      ).toString(), */
+    },
   },
   strict: true,
   verbose: true,
