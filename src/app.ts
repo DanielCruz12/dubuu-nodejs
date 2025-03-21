@@ -3,14 +3,12 @@ import cors from 'cors'
 import dotenv from 'dotenv'
 import { apiRoutes } from './routes/v1'
 import { setupSwagger } from './swagger'
-import { clerkClient, clerkMiddleware, getAuth, requireAuth } from '@clerk/express'
 
 dotenv.config()
 
 //* Create an Express application
 const app = express()
 
-app.use(clerkMiddleware())
 
 
 //* Middleware to parse JSON bodies
@@ -20,15 +18,6 @@ app.use(express.json())
 
 setupSwagger(app)
 
-app.get('/protected', requireAuth(), async (req, res) => {
-  // Use `getAuth()` to get the user's `userId`
-  const { userId } = getAuth(req)
-
-  // Use Clerk's JavaScript Backend SDK to get the user's User object
-  const user = await clerkClient.users.getUser(userId!)
-
-  return res.json({ user })
-})
 //* Define routes
 app.use('/api/v1', apiRoutes)
 

@@ -10,8 +10,16 @@ export const getProducts = async (req: Request, res: Response) => {
   try {
     const products = await getProductsService(req)
     res.status(200).json(products)
-  } catch (error) {
-    res.status(500).json({ message: 'Internal Server Error' })
+  } catch (error: any) {
+    if (error.status === 404) {
+      res.status(404).json({ message: 'Not Found' })
+    } else if (error.status === 401) {
+      res.status(401).json({ message: 'Unauthorized' })
+    } else if (error.status === 403) {
+      res.status(403).json({ message: 'Forbidden' })
+    } else {
+      res.status(500).json({ message: 'Internal Server Error' })
+    }
   }
 }
 
