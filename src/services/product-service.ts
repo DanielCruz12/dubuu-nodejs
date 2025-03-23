@@ -15,18 +15,18 @@ export const getProductsService = async (req: Request) => {
   // Filtro de categoría, por defecto "tours"
   const category = req.query.category?.toString() || 'tours'
 
-  // Obtener total de productos con la categoría seleccionada
+  // Obtener total de productos con la categoría seleccionada usando inner join
   const totalProducts = await db
     .select({ count: sql<number>`COUNT(*)` })
     .from(Products)
-    .leftJoin(
+    .innerJoin(
       ProductCategories,
       eq(Products.product_category_id, ProductCategories.id),
     )
     .where(eq(ProductCategories.name, category))
 
   const total = totalProducts[0]?.count || 0
-  //const totalPages = Math.ceil(total / limit)
+  // const totalPages = Math.ceil(total / limit)
 
   const products = await db
     .select({
@@ -59,11 +59,11 @@ export const getProductsService = async (req: Request) => {
     })
     .from(Products)
     .leftJoin(Ratings, eq(Products.id, Ratings.product_id))
-    .leftJoin(
+    .innerJoin(
       ProductCategories,
       eq(Products.product_category_id, ProductCategories.id),
     )
-    .leftJoin(
+    .innerJoin(
       TargetProductAudiences,
       eq(Products.target_product_audience_id, TargetProductAudiences.id),
     )
@@ -71,6 +71,7 @@ export const getProductsService = async (req: Request) => {
     .groupBy(Products.id, ProductCategories.id, TargetProductAudiences.id)
     .limit(limit)
     .offset(offset)
+
   return products
 }
 
