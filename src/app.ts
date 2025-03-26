@@ -3,6 +3,9 @@ import cors from 'cors'
 import dotenv from 'dotenv'
 import { apiRoutes } from './routes/v1'
 import { setupSwagger } from './swagger'
+import bodyParser from 'body-parser'
+import wompiRouter from './routes/v1/payment-routes'
+import { handleWebHook } from './controllers/clerk-webhook-controller'
 
 dotenv.config()
 
@@ -16,26 +19,13 @@ app.use(express.json())
 
 setupSwagger(app)
 
-app.post('/api/enlacePago', async (req, res) => {
-  try {
-    // Realiza la petición a la API de Wompi
-    const response = await fetch('https://api.wompi.sv/EnlacePago', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${process.env.WOMPI_API_KEY}`,
-      },
-      body: JSON.stringify(req.body),
-    })
+app.post(
+  '/api/webhooks',
+  bodyParser.raw({ type: 'application/json' }),
+  handleWebHook,
+)
 
-    const data = await response.json()
-    // Envía la respuesta al cliente
-    res.json(data)
-  } catch (error) {
-    console.error('Error en la solicitud de pago:', error)
-    res.status(500).json({ error: 'Error en la solicitud' })
-  }
-})
+app.use('/api', wompiRouter)
 
 //* Define routes
 app.use('/api/v1', apiRoutes)
