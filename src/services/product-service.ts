@@ -1,6 +1,6 @@
 import { db } from '../database/db'
 import { Request } from 'express'
-import { Products, Ratings } from '../database/schemas'
+import { Products, Ratings, Users } from '../database/schemas'
 import {
   ProductCategories,
   TargetProductAudiences,
@@ -44,6 +44,10 @@ export const getProductsService = async (req: Request) => {
       banner: Products.banner,
       created_at: Products.created_at,
       updated_at: Products.updated_at,
+
+      address: Products.address,
+      country: Products.country,
+
       product_category: {
         id: ProductCategories.id,
         name: ProductCategories.name,
@@ -90,6 +94,12 @@ export const getProductByIdService = async (productId: string) => {
       videos: Products.videos,
       files: Products.files,
       banner: Products.banner,
+      available_dates: Products.available_dates,
+      itinerary: Products.itinerary,
+      highlight: Products.highlight,
+      included: Products.included,
+      address: Products.address,
+      country: Products.country,
       created_at: Products.created_at,
       updated_at: Products.updated_at,
       product_category: {
@@ -100,7 +110,11 @@ export const getProductByIdService = async (productId: string) => {
         id: TargetProductAudiences.id,
         name: TargetProductAudiences.name,
       },
-
+      user: {
+        id: Users.id,
+        name: Users.name,
+        email: Users.email,
+      },
       average_rating: sql<number>`COALESCE(AVG(${Ratings.rating}), 0)`.as(
         'average_rating',
       ),
@@ -108,16 +122,23 @@ export const getProductByIdService = async (productId: string) => {
     })
     .from(Products)
     .where(and(eq(Products.id, productId), eq(Products.is_approved, true)))
+    .innerJoin(Users, eq(Products.user_id, Users.id))
     .leftJoin(Ratings, eq(Products.id, Ratings.product_id))
-    .leftJoin(
+    .innerJoin(
       ProductCategories,
       eq(Products.product_category_id, ProductCategories.id),
     )
-    .leftJoin(
+    .innerJoin(
       TargetProductAudiences,
       eq(Products.target_product_audience_id, TargetProductAudiences.id),
     )
-    .groupBy(Products.id, ProductCategories.id, TargetProductAudiences.id)
+
+    .groupBy(
+      Products.id,
+      ProductCategories.id,
+      TargetProductAudiences.id,
+      Users.id,
+    )
     .limit(1)
 
   return product[0]

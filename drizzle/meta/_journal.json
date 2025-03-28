@@ -8,6 +8,13 @@
       "when": 1742535363649,
       "tag": "0000_deep_king_bedlam",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1743199460848,
+      "tag": "0001_military_george_stacy",
+      "breakpoints": true
     }
   ]
 }

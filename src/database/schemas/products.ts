@@ -14,13 +14,25 @@ import {
   TargetProductAudiences,
 } from './product-catalogs'
 import { Users } from './users'
+import { sql } from 'drizzle-orm'
 
 export const Products = pgTable('products', {
   id: uuid().primaryKey().defaultRandom().notNull(),
   name: varchar({ length: 155 }).notNull(),
   description: text().notNull(),
   price: decimal({ precision: 10, scale: 2 }).notNull(),
+
   departure_point: text().notNull(),
+  address: text().notNull(),
+  country: varchar({ length: 100 }).notNull(),
+  available_dates: timestamp('available_dates', { withTimezone: true })
+    .array()
+    .notNull()
+    .default(sql`'{}'`),
+  itinerary: text('itinerary').array().default(['']),
+  highlight: text().notNull(),
+  included: text().notNull(),
+
   is_approved: boolean().notNull().default(false),
   max_people: integer().notNull(),
   duration: integer().notNull(),
