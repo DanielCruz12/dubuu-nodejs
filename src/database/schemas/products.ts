@@ -22,16 +22,16 @@ export const Products = pgTable('products', {
   description: text().notNull(),
   price: decimal({ precision: 10, scale: 2 }).notNull(),
 
-  departure_point: text().notNull(),
-  address: text().notNull(),
+  departure_point: text().notNull().default(''),
+  address: text().notNull().default(''),
   country: varchar({ length: 100 }).notNull(),
   available_dates: timestamp('available_dates', { withTimezone: true })
     .array()
     .notNull()
     .default(sql`'{}'`),
   itinerary: text('itinerary').array().default(['']),
-  highlight: text().notNull(),
-  included: text().notNull(),
+  highlight: text().notNull().default(''),
+  included: text().notNull().default(''),
 
   is_approved: boolean().notNull().default(false),
   max_people: integer().notNull(),
