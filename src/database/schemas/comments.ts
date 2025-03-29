@@ -8,9 +8,6 @@ export const Comments = pgTable('comments', {
     .references(() => Users.id)
     .notNull(),
   comment: text().notNull(),
-  product_id: uuid()
-    .references(() => Products.id)
-    .notNull(),
   created_at: timestamp().notNull().defaultNow(),
   updated_at: timestamp().notNull().defaultNow(),
 })

@@ -4,6 +4,9 @@ export const ProductServices = pgTable('product_services', {
   id: uuid().primaryKey().defaultRandom().notNull(),
   name: varchar({ length: 155 }).notNull(),
   description: text().notNull(),
+  category_id: uuid()
+    .references(() => ProductCategories.id)
+    .notNull(),
 })
 
 export const ProductCategories = pgTable('product_categories', {

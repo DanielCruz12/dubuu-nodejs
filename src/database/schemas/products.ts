@@ -40,7 +40,6 @@ export const Products = pgTable('products', {
   videos: text('videos').array().default(['']),
   files: text('files').array().default(['']),
   banner: text('banner'),
-
   product_service_id: uuid()
     .references(() => ProductServices.id)
     .notNull(),

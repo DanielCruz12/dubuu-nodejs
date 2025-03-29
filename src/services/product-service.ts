@@ -1,6 +1,6 @@
 import { db } from '../database/db'
 import { Request } from 'express'
-import { Products, Ratings, Users } from '../database/schemas'
+import { Faqs, Products, Ratings, Users } from '../database/schemas'
 import {
   ProductCategories,
   TargetProductAudiences,
@@ -118,6 +118,7 @@ export const getProductByIdService = async (productId: string) => {
       average_rating: sql<number>`COALESCE(AVG(${Ratings.rating}), 0)`.as(
         'average_rating',
       ),
+
       total_reviews: sql<number>`COUNT(${Ratings.id})`.as('total_reviews'),
     })
     .from(Products)

@@ -21,6 +21,22 @@ export const createUserService = async (userData: any) => {
   }
 }
 
+export const getUserByIdService = async (userId: string) => {
+  try {
+    const user = await db
+      .select()
+      .from(Users)
+      .where(eq(Users.id, userId))
+      .limit(1)
+      .execute()
+
+    return user[0] || null
+  } catch (error) {
+    console.error('Error fetching user:', error)
+    throw new Error('Failed to fetch user')
+  }
+}
+
 export const updateUserService = async (userId: string, userData: any) => {
   try {
     const [updatedUser] = await db
