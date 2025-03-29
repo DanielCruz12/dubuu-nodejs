@@ -147,12 +147,18 @@ export const getProductByIdService = async (productId: string) => {
 
 export const createProductService = async (productData: any) => {
   try {
-    const newProduct = await db.insert(Products).values(productData).returning()
-    return newProduct
+    const formattedProductData = {
+      ...productData,
+      available_dates: productData.available_dates.map((date: string) => new Date(date)),
+    };
+
+    const [newProduct] = await db.insert(Products).values(formattedProductData).returning();
+    return newProduct;
   } catch (error) {
-    console.log(error)
+    console.error('Error en createProductService:', error);
+    throw error;
   }
-}
+};
 
 export const deleteProductService = async (productId: string) => {
   try {
