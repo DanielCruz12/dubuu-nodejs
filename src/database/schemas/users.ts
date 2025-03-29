@@ -21,10 +21,7 @@ export const Users = pgTable('users', {
   account_holder_name: varchar({ length: 255 }),
   phone_number: varchar({ length: 50 }),
   account_type: text({ enum: ['Ahorro', 'Corriente'] }).default('Ahorro'),
-  role_id: uuid()
-    .notNull()
-    .default('31e73e39-521a-434d-b174-58ab49668369')
-    .references(() => Roles.id),
+  role_id: uuid().references(() => Roles.id),
   created_at: timestamp().notNull().defaultNow(),
   updated_at: timestamp().notNull().defaultNow(),
 })
