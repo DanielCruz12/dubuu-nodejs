@@ -8,11 +8,13 @@ export const getUsersService = async () => {
 
 export const createUserService = async (userData: any) => {
   try {
-    const { email, id, name } = userData
+    const { email, id, username, last_name, first_name } = userData
     const newUser = await db.insert(Users).values({
       email,
       id,
-      name,
+      username,
+      last_name,
+      first_name,
     })
     return newUser
   } catch (error) {
