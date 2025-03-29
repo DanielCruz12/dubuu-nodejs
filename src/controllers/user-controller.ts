@@ -17,13 +17,12 @@ export const getUsers = async (req: Request, res: Response) => {
 }
 
 export const createUser = async (req: Request, res: Response) => {
-  const { email, id, name, role_id } = req.body
+  const { email, id, name } = req.body
   try {
     const data = await createUserService({
       email,
       id,
       name,
-      role_id,
     })
     res.status(201).json({ message: 'User created successfully', data })
   } catch (error) {

@@ -15,15 +15,14 @@ const app = express()
 //* Middleware to parse JSON bodies
 app.use(cors())
 
-app.use(express.json())
-
-setupSwagger(app)
-
 app.post(
   '/api/webhooks',
   bodyParser.raw({ type: 'application/json' }),
   handleWebHook,
 )
+
+setupSwagger(app)
+app.use(express.json())
 
 app.use('/api', wompiRouter)
 

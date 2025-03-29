@@ -2,6 +2,7 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
+    <link rel="icon" href="/tour.jpg" type="image/png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Dantours - Viajes, Renta, Tours y más</title>
     <style>
@@ -10,71 +11,105 @@
         padding: 0;
         box-sizing: border-box;
       }
+
       body {
         font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        height: 100vh;
         display: flex;
         justify-content: center;
         align-items: center;
-        height: 100vh;
-        background: linear-gradient(135deg, #f5f7fa, #c3cfe2);
-        color: #444;
+        /* Imagen de fondo en blanco y negro */
+        background: url('/tour.jpg') no-repeat center center;
+        background-size: cover;
+        color: #000000;
+        position: relative;
       }
+
+      /* Capa semitransparente para resaltar el texto */
+      body::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: rgba(196, 196, 196, 0.8);
+        z-index: 0;
+      }
+
       .container {
-        text-align: center;
-        background-color: #fff;
+        position: relative;
+        z-index: 1;
+        background-color: #ffffff79;
         padding: 40px;
         border-radius: 10px;
         box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        max-width: 500px;
+        width: 90%;
+        text-align: center;
       }
-      h1 {
-        font-size: 2.5rem;
-        color: #2c3e50;
+
+      .logo img {
+        width: 100px;
         margin-bottom: 20px;
       }
+
+      h1 {
+        font-size: 2rem;
+        margin-bottom: 15px;
+      }
+
       p {
-        font-size: 1.2rem;
-        color: #7f8c8d;
+        margin-bottom: 20px;
+        font-size: 1rem;
+        line-height: 1.4;
       }
-      .logo {
-        margin-bottom: 10px;
+
+      .cta a {
+        display: inline-block;
+        padding: 12px 20px;
+        border-radius: 5px;
+        background-color: #000;
+        color: #fff;
+        text-decoration: none;
+        font-weight: bold;
+        transition: background-color 0.3s ease;
       }
-      .logo img {
-        width: 120px;
+
+      .cta a:hover {
+        background-color: #444;
       }
+
       footer {
-        margin-top: 30px;
+        margin-top: 20px;
         font-size: 0.9rem;
-        color: #95a5a6;
       }
-      a {
-        color: #2980b9;
+
+      footer a {
+        color: #000;
         text-decoration: none;
         font-weight: bold;
       }
-      a:hover {
+
+      footer a:hover {
         text-decoration: underline;
       }
     </style>
   </head>
   <body>
     <div class="container">
-      <div class="logo">
-        <img
-          src="https://fedepatelsalvador.info/logo.png"
-          alt="Fedepatelsalvador Logo"
-        />
-      </div>
-      <h1>Fedepatelsalvador-api</h1>
-      <p>Bienvenido a la Federación de Patinaje de El Salvador</p>
+    
+      <h1>Dantours</h1>
       <p>
-        Aquí encontrarás toda la información sobre eventos, competiciones y
-        noticias relacionadas con el patinaje en El Salvador.
+        Viajes, renta de autos y tours. Vive una experiencia inolvidable con Dantours.
       </p>
+      <div class="cta">
+        <a href="https://dantour.vercel.app/" target="_blank"">Reserva Ahora</a>
+      </div>
+
       <footer>
         <p>
           Visítanos en
-          <a href="https://fedepatelsalvador.info">fedepatelsalvador.info</a> para
-          más detalles.
+          <a href="https://dantour.vercel.app/" target="_blank"
+            >dantour.vercel.app</a
+          >
         </p>
       </footer>
     </div>
