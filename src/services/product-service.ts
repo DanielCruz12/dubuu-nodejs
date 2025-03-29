@@ -112,7 +112,7 @@ export const getProductByIdService = async (productId: string) => {
       },
       user: {
         id: Users.id,
-        name: Users.name,
+        username: Users.username,
         email: Users.email,
       },
       average_rating: sql<number>`COALESCE(AVG(${Ratings.rating}), 0)`.as(

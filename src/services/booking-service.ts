@@ -36,7 +36,7 @@ export const getBookingsForUserService = async (userId: string) => {
   const result = await db
     .select({
       userId: Users.id,
-      userName: Users.name,
+      userName: Users.username,
       bookingId: Bookings.id,
       productId: Bookings.product_id,
       status: Bookings.status,

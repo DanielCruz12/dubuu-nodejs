@@ -11,7 +11,7 @@ export const getRatingsService = async (id: string) => {
       product_id: Ratings.product_id,
       rating: Ratings.rating,
       review: Ratings.review,
-      name: Users.name,
+      username: Users.username,
       email: Users.email,
     })
     .from(Ratings)
