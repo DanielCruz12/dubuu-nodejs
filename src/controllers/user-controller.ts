@@ -32,12 +32,14 @@ export const getUserById = async (req: Request, res: Response) => {
 }
 
 export const createUser = async (req: Request, res: Response) => {
-  const { email, id, name } = req.body
+  const { email, id, username, last_name, first_name } = req.body
   try {
     const data = await createUserService({
       email,
       id,
-      name,
+      username,
+      last_name,
+      first_name,
     })
     res.status(201).json({ message: 'User created successfully', data })
   } catch (error) {
@@ -48,11 +50,13 @@ export const createUser = async (req: Request, res: Response) => {
 
 export const updateUser = async (req: Request, res: Response) => {
   const { id } = req.params
-  const { email, name } = req.body
+  const { email, username, first_name, last_name } = req.body
   try {
     const updatedUser = await updateUserService(id, {
       email,
-      name,
+      username,
+      first_name,
+      last_name,
     })
     res.status(200).json({ message: 'User updated successfully', updatedUser })
   } catch (error) {

@@ -15,12 +15,6 @@ export const handleWebHook = async (req: Request, res: Response) => {
   const payload = req.body
   const rawBody = payload.toString('utf8')
 
-  console.log('rawBody:', rawBody)
-  console.log(
-    'rawBody type:',
-    Buffer.isBuffer(rawBody) ? 'Buffer' : typeof rawBody,
-  )
-
   //* Extract Svix-specific headers
   const svix_id = headers['svix-id'] as string
   const svix_timestamp = headers['svix-timestamp'] as string
@@ -51,12 +45,9 @@ export const handleWebHook = async (req: Request, res: Response) => {
     })
   }
 
-  const { email_addresses, first_name, last_name, id } = evt.data
-  console.log(evt.data)
-  console.log('Received Clerk ID:', id)
+  const { email_addresses, first_name, last_name, id, username } = evt.data
 
   const eventType = evt.type
-  console.log(eventType)
   try {
     switch (eventType) {
       // User related events
@@ -67,7 +58,9 @@ export const handleWebHook = async (req: Request, res: Response) => {
             body: {
               email: email_addresses[0].email_address,
               id,
-              name: `${first_name} ${last_name}`,
+              first_name: `${first_name}`,
+              last_name: `${last_name}`,
+              username,
             },
           } as Request,
           res,
@@ -82,6 +75,7 @@ export const handleWebHook = async (req: Request, res: Response) => {
               email: email_addresses[0].email_address,
               firstName: first_name,
               lastName: last_name,
+              username
             },
           } as any,
           res,
@@ -118,7 +112,6 @@ export const handleWebHook = async (req: Request, res: Response) => {
       case 'organizationDomain.updated':
       case 'organizationDomain.deleted':
         // Log these events for now
-        console.log(`Event received: ${eventType}`)
         break
 
       default:
@@ -129,7 +122,6 @@ export const handleWebHook = async (req: Request, res: Response) => {
       .status(200)
       .json({ success: true, message: 'Webhook processed successfully' })
   } catch (error) {
-    console.error('Error handling webhook event:', error)
     res.status(500).json({ message: 'Error handling webhook event' })
   }
 }

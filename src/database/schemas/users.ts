@@ -11,7 +11,7 @@ export const Roles = pgTable('user_roles', {
 
 export const Users = pgTable('users', {
   id: text().primaryKey().notNull(),
-  name: varchar({ length: 255 }).notNull(),
+  username: varchar({ length: 255 }).notNull(),
   email: varchar({ length: 255 }).notNull(),
   bank_name: varchar({ length: 255 }),
   account_number: varchar({ length: 50 }),
