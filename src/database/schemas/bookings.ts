@@ -4,7 +4,7 @@ import { Products } from './products'
 
 export const Bookings = pgTable('bookings', {
   id: uuid().primaryKey().defaultRandom().notNull(),
-  user_id: uuid()
+  user_id: text()
     .references(() => Users.id)
     .notNull(),
   product_id: uuid()

@@ -4,7 +4,7 @@ import { Products } from './products'
 
 export const Comments = pgTable('comments', {
   id: uuid().primaryKey().defaultRandom().notNull(),
-  user_id: uuid()
+  user_id: text()
     .references(() => Users.id)
     .notNull(),
   comment: text().notNull(),

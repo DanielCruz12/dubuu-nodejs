@@ -50,7 +50,7 @@ export const Products = pgTable('products', {
   target_product_audience_id: uuid()
     .references(() => TargetProductAudiences.id)
     .notNull(),
-  user_id: uuid()
+  user_id: text()
     .references(() => Users.id)
     .notNull(),
 
