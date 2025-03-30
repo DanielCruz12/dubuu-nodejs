@@ -8,7 +8,7 @@ import {
 
 const router = express.Router()
 
-router.get('/', getRatings)
+router.get('/:id', getRatings)
 router.get('/:id', getRatingById)
 router.post('/', createRating)
 router.delete('/:id', deleteRating)
