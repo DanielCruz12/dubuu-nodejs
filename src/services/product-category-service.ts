@@ -50,11 +50,8 @@ export const getProductCategoryByIdService = async (id: string) => {
 }
 
 // ✅ Crear una nueva categoría con validación
-export const createProductCategoryService = async (data: {
-  name?: string
-  description?: string
-  product_type_id?: string
-}) => {
+export const createProductCategoryService = async (data: any) => {
+  console.log(data)
   const name = data?.name?.trim()
   const description = data?.description?.trim()
   const product_type_id = data?.product_type_id
@@ -76,7 +73,7 @@ export const createProductCategoryService = async (data: {
 
     const [newCategory] = await db
       .insert(ProductCategories)
-      .values({ name, description, product_type_id })
+      .values(data)
       .returning()
 
     return newCategory

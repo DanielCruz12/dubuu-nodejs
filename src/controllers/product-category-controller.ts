@@ -35,10 +35,12 @@ export const createProductCategory = async (req: Request, res: Response) => {
   try {
     const newCategory = await createProductCategoryService(req.body)
     res.status(201).json(newCategory)
-  } catch (error) {
-    res.status(500).json({ message: 'Internal Server Error' })
+  } catch (error: any) {
+    console.error('❌ Error en createProductCategory:', error)
+    res.status(400).json({ error: error.message })
   }
 }
+
 
 export const deleteProductCategory = async (req: Request, res: Response) => {
   try {
