@@ -5,22 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1743655949533,
-      "tag": "0000_clear_menace",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1743659318346,
-      "tag": "0001_mushy_giant_man",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1743661487179,
-      "tag": "0002_nappy_firedrake",
+      "when": 1743717410379,
+      "tag": "0000_nebulous_pet_avengers",
       "breakpoints": true
     }
   ]

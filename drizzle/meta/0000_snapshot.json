@@ -1,5 +1,5 @@
 {
-  "id": "ab249831-7da0-4a65-b850-4fcaa24552d3",
+  "id": "f52b3921-5fb1-487a-9e70-b6ef84b28d24",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -215,6 +215,118 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.product_amenities": {
+      "name": "product_amenities",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(155)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "category_id": {
+          "name": "category_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "product_amenities_category_id_product_categories_id_fk": {
+          "name": "product_amenities_category_id_product_categories_id_fk",
+          "tableFrom": "product_amenities",
+          "tableTo": "product_categories",
+          "columnsFrom": [
+            "category_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.product_amenities_products": {
+      "name": "product_amenities_products",
+      "schema": "",
+      "columns": {
+        "product_id": {
+          "name": "product_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "product_amenity_id": {
+          "name": "product_amenity_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "product_amenities_products_product_id_products_id_fk": {
+          "name": "product_amenities_products_product_id_products_id_fk",
+          "tableFrom": "product_amenities_products",
+          "tableTo": "products",
+          "columnsFrom": [
+            "product_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "product_amenities_products_product_amenity_id_product_amenities_id_fk": {
+          "name": "product_amenities_products_product_amenity_id_product_amenities_id_fk",
+          "tableFrom": "product_amenities_products",
+          "tableTo": "product_amenities",
+          "columnsFrom": [
+            "product_amenity_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "product_amenities_products_product_id_product_amenity_id_pk": {
+          "name": "product_amenities_products_product_id_product_amenity_id_pk",
+          "columns": [
+            "product_id",
+            "product_amenity_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.product_categories": {
       "name": "product_categories",
       "schema": "",
@@ -247,118 +359,6 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.product_services": {
-      "name": "product_services",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "name": {
-          "name": "name",
-          "type": "varchar(155)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "description": {
-          "name": "description",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "category_id": {
-          "name": "category_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "product_services_category_id_product_categories_id_fk": {
-          "name": "product_services_category_id_product_categories_id_fk",
-          "tableFrom": "product_services",
-          "tableTo": "product_categories",
-          "columnsFrom": [
-            "category_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.product_services_products": {
-      "name": "product_services_products",
-      "schema": "",
-      "columns": {
-        "product_id": {
-          "name": "product_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "product_service_id": {
-          "name": "product_service_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "product_services_products_product_id_products_id_fk": {
-          "name": "product_services_products_product_id_products_id_fk",
-          "tableFrom": "product_services_products",
-          "tableTo": "products",
-          "columnsFrom": [
-            "product_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "product_services_products_product_service_id_product_services_id_fk": {
-          "name": "product_services_products_product_service_id_product_services_id_fk",
-          "tableFrom": "product_services_products",
-          "tableTo": "product_services",
-          "columnsFrom": [
-            "product_service_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "product_services_products_product_id_product_service_id_pk": {
-          "name": "product_services_products_product_id_product_service_id_pk",
-          "columns": [
-            "product_id",
-            "product_service_id"
-          ]
-        }
-      },
-      "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
     "public.products": {
       "name": "products",
       "schema": "",
@@ -376,6 +376,12 @@
           "primaryKey": false,
           "notNull": true
         },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
         "description": {
           "name": "description",
           "type": "text",
@@ -387,13 +393,6 @@
           "type": "numeric(10, 2)",
           "primaryKey": false,
           "notNull": true
-        },
-        "departure_point": {
-          "name": "departure_point",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "''"
         },
         "address": {
           "name": "address",
@@ -408,34 +407,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "available_dates": {
-          "name": "available_dates",
-          "type": "timestamp with time zone[]",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'{}'"
-        },
-        "itinerary": {
-          "name": "itinerary",
-          "type": "text[]",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "'{\"\"}'"
-        },
-        "highlight": {
-          "name": "highlight",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "''"
-        },
-        "included": {
-          "name": "included",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "''"
-        },
         "is_approved": {
           "name": "is_approved",
           "type": "boolean",
@@ -443,27 +414,8 @@
           "notNull": true,
           "default": false
         },
-        "max_people": {
-          "name": "max_people",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "duration": {
-          "name": "duration",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
         "images": {
           "name": "images",
-          "type": "text[]",
-          "primaryKey": false,
-          "notNull": false,
-          "default": "'{\"\"}'"
-        },
-        "videos": {
-          "name": "videos",
           "type": "text[]",
           "primaryKey": false,
           "notNull": false,
@@ -476,35 +428,18 @@
           "notNull": false,
           "default": "'{\"\"}'"
         },
+        "videos": {
+          "name": "videos",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'{\"\"}'"
+        },
         "banner": {
           "name": "banner",
           "type": "text",
           "primaryKey": false,
           "notNull": false
-        },
-        "product_service_id": {
-          "name": "product_service_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "product_category_id": {
-          "name": "product_category_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "target_product_audience_id": {
-          "name": "target_product_audience_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
         },
         "is_active": {
           "name": "is_active",
@@ -527,6 +462,24 @@
           "notNull": false,
           "default": 0
         },
+        "target_product_audience_id": {
+          "name": "target_product_audience_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "product_category_id": {
+          "name": "product_category_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "product_type_id": {
+          "name": "product_type_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp",
@@ -544,25 +497,12 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "products_product_service_id_product_services_id_fk": {
-          "name": "products_product_service_id_product_services_id_fk",
+        "products_user_id_users_id_fk": {
+          "name": "products_user_id_users_id_fk",
           "tableFrom": "products",
-          "tableTo": "product_services",
+          "tableTo": "users",
           "columnsFrom": [
-            "product_service_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "products_product_category_id_product_categories_id_fk": {
-          "name": "products_product_category_id_product_categories_id_fk",
-          "tableFrom": "products",
-          "tableTo": "product_categories",
-          "columnsFrom": [
-            "product_category_id"
+            "user_id"
           ],
           "columnsTo": [
             "id"
@@ -583,12 +523,25 @@
           "onDelete": "no action",
           "onUpdate": "no action"
         },
-        "products_user_id_users_id_fk": {
-          "name": "products_user_id_users_id_fk",
+        "products_product_category_id_product_categories_id_fk": {
+          "name": "products_product_category_id_product_categories_id_fk",
           "tableFrom": "products",
-          "tableTo": "users",
+          "tableTo": "product_categories",
           "columnsFrom": [
-            "user_id"
+            "product_category_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "products_product_type_id_product_types_id_fk": {
+          "name": "products_product_type_id_product_types_id_fk",
+          "tableFrom": "products",
+          "tableTo": "product_types",
+          "columnsFrom": [
+            "product_type_id"
           ],
           "columnsTo": [
             "id"
@@ -753,6 +706,85 @@
       },
       "indexes": {},
       "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.tours": {
+      "name": "tours",
+      "schema": "",
+      "columns": {
+        "product_id": {
+          "name": "product_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "departure_point": {
+          "name": "departure_point",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "''"
+        },
+        "available_dates": {
+          "name": "available_dates",
+          "type": "timestamp with time zone[]",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "max_people": {
+          "name": "max_people",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "itinerary": {
+          "name": "itinerary",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'{\"\"}'"
+        },
+        "highlight": {
+          "name": "highlight",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "''"
+        },
+        "included": {
+          "name": "included",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "''"
+        },
+        "duration": {
+          "name": "duration",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "tours_product_id_products_id_fk": {
+          "name": "tours_product_id_products_id_fk",
+          "tableFrom": "tours",
+          "tableTo": "products",
+          "columnsFrom": [
+            "product_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
