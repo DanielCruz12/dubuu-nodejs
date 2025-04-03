@@ -9,12 +9,15 @@ import { bookingsRoutes } from './booking-routes'
 import { commentsRoutes } from './comment-routes'
 import { faqsRoutes } from './faq-routes'
 import { productAmenitiesRoutes } from './product-amenities-routes'
+import { ProductTypes } from '../../database/schemas'
+import { productTypesRoutes } from './product-types-routes'
 
 const router = express.Router()
 
 router.use('/users', userRoutes)
 router.use('/products', productRoutes)
 router.use('/product-amenities', productAmenitiesRoutes)
+router.use('/product-types', productTypesRoutes)
 router.use('/product-category', productCategoriesRoutes)
 router.use('/product-audience', productAudiencesRoutes)
 router.use('/ratings', ratingRoutes)

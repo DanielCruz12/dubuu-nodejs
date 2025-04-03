@@ -1,6 +1,6 @@
 import { db } from '../database/db'
 import { Request } from 'express'
-import { Faqs, Products, Ratings, Tours, Users } from '../database/schemas'
+import { Products, Ratings, Tours, Users } from '../database/schemas'
 import {
   ProductAmenities,
   ProductAmenitiesProducts,

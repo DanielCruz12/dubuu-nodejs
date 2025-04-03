@@ -2,48 +2,99 @@ import { db } from '../database/db'
 import { Request } from 'express'
 import { Ratings, Users } from '../database/schemas'
 import { eq } from 'drizzle-orm'
+import { statusCodes } from '../utils'
 
-export const getRatingsService = async (id: string) => {
-  const products = await db
-    .select({
-      id: Ratings.id,
-      user_id: Ratings.user_id,
-      product_id: Ratings.product_id,
-      rating: Ratings.rating,
-      review: Ratings.review,
-      username: Users.username,
-      email: Users.email,
-    })
-    .from(Ratings)
-    .innerJoin(Users, eq(Users.id, Ratings.user_id))
-    .where(eq(Ratings.product_id, id))
-  return products
+// 🔍 Obtener todos los ratings de un producto
+export const getRatingsService = async (productId: string) => {
+  if (!productId) {
+    console.error('400:', statusCodes[400])
+    throw new Error('El ID del producto es obligatorio.')
+  }
+
+  try {
+    const ratings = await db
+      .select({
+        id: Ratings.id,
+        user_id: Ratings.user_id,
+        product_id: Ratings.product_id,
+        rating: Ratings.rating,
+        review: Ratings.review,
+        username: Users.username,
+        email: Users.email,
+      })
+      .from(Ratings)
+      .innerJoin(Users, eq(Users.id, Ratings.user_id))
+      .where(eq(Ratings.product_id, productId))
+
+    return ratings
+  } catch (error) {
+    console.error('500:', statusCodes[500], '-', error)
+    throw new Error('Error al obtener las calificaciones.')
+  }
 }
 
+// 🔍 Obtener un rating por ID
 export const getRatingByIdService = async (id: string) => {
-  const product = await db.select().from(Ratings).where(eq(Ratings.id, id))
-  return product
+  if (!id) {
+    console.error('400:', statusCodes[400])
+    throw new Error('El ID del rating es obligatorio.')
+  }
+
+  try {
+    const [rating] = await db.select().from(Ratings).where(eq(Ratings.id, id))
+    return rating || null
+  } catch (error) {
+    console.error('500:', statusCodes[500], '-', error)
+    throw new Error('Error al obtener el rating.')
+  }
 }
 
+// ➕ Crear un nuevo rating
 export const createRatingService = async (req: Request) => {
   const { product_id, user_id, rating, review } = req.body
 
-  const newRating = {
-    product_id,
-    user_id,
-    rating,
-    review,
+  if (!product_id || !user_id || rating === undefined) {
+    console.error('400:', statusCodes[400])
+    throw new Error('Campos requeridos: product_id, user_id y rating.')
   }
 
-  await db.insert(Ratings).values(newRating)
+  try {
+    const newRating = {
+      product_id,
+      user_id,
+      rating: Number(rating),
+      review: review?.trim() || '',
+    }
 
-  return newRating
+    const [created] = await db.insert(Ratings).values(newRating).returning()
+    return created
+  } catch (error) {
+    console.error('500:', statusCodes[500], '-', error)
+    throw new Error('Error al crear el rating.')
+  }
 }
 
+// ❌ Eliminar un rating por ID
 export const deleteRatingService = async (id: string) => {
-  const deletedRating = await db
-    .delete(Ratings)
-    .where(eq(Ratings.id, id))
-    .returning()
-  return deletedRating
+  if (!id) {
+    console.error('400:', statusCodes[400])
+    throw new Error('El ID del rating es obligatorio.')
+  }
+
+  try {
+    const [deletedRating] = await db
+      .delete(Ratings)
+      .where(eq(Ratings.id, id))
+      .returning()
+
+    if (!deletedRating) {
+      console.error('404:', statusCodes[404])
+      throw new Error('Rating no encontrado para eliminar.')
+    }
+
+    return deletedRating
+  } catch (error) {
+    console.error('500:', statusCodes[500], '-', error)
+    throw new Error('Error al eliminar el rating.')
+  }
 }
