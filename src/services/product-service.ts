@@ -1,13 +1,14 @@
 import { db } from '../database/db'
 import { Request } from 'express'
-import { Faqs, Products, Ratings, Users } from '../database/schemas'
+import { Faqs, Products, Ratings, Tours, Users } from '../database/schemas'
 import {
+  ProductAmenities,
+  ProductAmenitiesProducts,
   ProductCategories,
-  ProductServices,
-  ProductServicesProducts,
+  ProductTypes,
   TargetProductAudiences,
 } from '../database/schemas/product-catalogs'
-import { eq, sql, and } from 'drizzle-orm'
+import { eq, sql, and, ilike, gte, lte, desc } from 'drizzle-orm'
 
 export const getProductsService = async (req: Request) => {
   const page = parseInt(req.query.page as string) || 1
@@ -15,40 +16,47 @@ export const getProductsService = async (req: Request) => {
   const offset = (page - 1) * limit
 
   // Filtro de categoría, por defecto "tours"
-  const category = req.query.category?.toString() || 'tours'
+  const category = req.query.category?.toString().toLowerCase() || 'tours'
+  const search = req.query.search?.toString()
+  const country = req.query.country?.toString()
+  const isApproved = req.query.is_approved === 'true'
+  const minPrice = req.query.min_price
+    ? parseFloat(req.query.min_price as string)
+    : undefined
+  const maxPrice = req.query.max_price
+    ? parseFloat(req.query.max_price as string)
+    : undefined
 
-  // Obtener total de productos con la categoría seleccionada usando inner join
-  const totalProducts = await db
+  const whereConditions = [
+    eq(ProductCategories.name, category),
+    ...(search
+      ? [
+          ilike(Products.name, `%${search}%`),
+          ilike(Products.description, `%${search}%`),
+        ]
+      : []),
+    ...(country ? [eq(Products.country, country)] : []),
+    ...(req.query.is_approved ? [eq(Products.is_approved, isApproved)] : []),
+    ...(minPrice !== undefined
+      ? [gte(Products.price, minPrice.toString())]
+      : []),
+    ...(maxPrice !== undefined
+      ? [lte(Products.price, maxPrice.toString())]
+      : []),
+  ]
+
+  const [{ count: total = 0 } = {}] = await db
     .select({ count: sql<number>`COUNT(*)` })
     .from(Products)
     .innerJoin(
       ProductCategories,
       eq(Products.product_category_id, ProductCategories.id),
     )
-    .where(eq(ProductCategories.name, category))
-
-  const total = totalProducts[0]?.count || 0
-  // const totalPages = Math.ceil(total / limit)
+    .where(and(...whereConditions))
 
   const products = await db
     .select({
-      id: Products.id,
-      name: Products.name,
-      description: Products.description,
-      price: Products.price,
-      departure_point: Products.departure_point,
-      is_approved: Products.is_approved,
-      max_people: Products.max_people,
-      duration: Products.duration,
-      images: Products.images,
-      videos: Products.videos,
-      files: Products.files,
-      banner: Products.banner,
-      created_at: Products.created_at,
-      updated_at: Products.updated_at,
-
-      address: Products.address,
-      country: Products.country,
+      product: { ...Products },
 
       product_category: {
         id: ProductCategories.id,
@@ -73,35 +81,28 @@ export const getProductsService = async (req: Request) => {
     )
     .where(eq(ProductCategories.name, category))
     .groupBy(Products.id, ProductCategories.id, TargetProductAudiences.id)
+    .orderBy(desc(Products.created_at))
     .limit(limit)
     .offset(offset)
 
-  return products
+  const totalPages = Math.ceil(total / limit)
+
+  return {
+    data: products,
+    pagination: {
+      total,
+      totalPages,
+      page,
+      limit,
+    },
+  }
 }
 
 export const getProductByIdService = async (productId: string) => {
   const product = await db
     .select({
-      id: Products.id,
-      name: Products.name,
-      description: Products.description,
-      price: Products.price,
-      departure_point: Products.departure_point,
-      is_approved: Products.is_approved,
-      max_people: Products.max_people,
-      duration: Products.duration,
-      images: Products.images,
-      videos: Products.videos,
-      files: Products.files,
-      banner: Products.banner,
-      available_dates: Products.available_dates,
-      itinerary: Products.itinerary,
-      highlight: Products.highlight,
-      included: Products.included,
-      address: Products.address,
-      country: Products.country,
-      created_at: Products.created_at,
-      updated_at: Products.updated_at,
+      product: { ...Products },
+
       product_category: {
         id: ProductCategories.id,
         name: ProductCategories.name,
@@ -118,17 +119,27 @@ export const getProductByIdService = async (productId: string) => {
       average_rating: Products.average_rating,
       total_reviews: Products.total_reviews,
 
-      services: sql`
+      amenities: sql`
       COALESCE(
         json_agg(
           json_build_object(
-            'id', ${ProductServices.id},
-            'name', ${ProductServices.name}
+            'id', ${ProductAmenities.id},
+            'name', ${ProductAmenities.name}
           )
-        ) FILTER (WHERE ${ProductServices.id} IS NOT NULL),
+        ) FILTER (WHERE ${ProductAmenities.id} IS NOT NULL),
         '[]'
       )
-    `.as('services'),
+    `.as('amenities'),
+
+      tour: {
+        departure_point: Tours.departure_point,
+        available_dates: Tours.available_dates,
+        max_people: Tours.max_people,
+        itinerary: Tours.itinerary,
+        highlight: Tours.highlight,
+        included: Tours.included,
+        duration: Tours.duration,
+      },
     })
     .from(Products)
     .where(and(eq(Products.id, productId), eq(Products.is_approved, true)))
@@ -142,22 +153,27 @@ export const getProductByIdService = async (productId: string) => {
       TargetProductAudiences,
       eq(Products.target_product_audience_id, TargetProductAudiences.id),
     )
+    .leftJoin(Tours, eq(Products.id, Tours.product_id))
 
-    // Join a la tabla de unión y luego a la tabla de servicios para traer sus datos:
+    // Join a la tabla de unión y luego a la tabla de amenities para traer sus datos:
     .leftJoin(
-      ProductServicesProducts,
-      eq(Products.id, ProductServicesProducts.productId),
+      ProductAmenitiesProducts,
+      eq(Products.id, ProductAmenitiesProducts.productId),
     )
     .leftJoin(
-      ProductServices,
-      eq(ProductServicesProducts.productServiceId, ProductServices.id),
+      ProductAmenities,
+      eq(ProductAmenitiesProducts.productAmenityId, ProductAmenities.id),
     )
+
+    .leftJoin(ProductTypes, eq(Products.product_type_id, ProductTypes.id))
 
     .groupBy(
+      Users.id,
       Products.id,
+      ProductTypes.id,
+      Tours.product_id,
       ProductCategories.id,
       TargetProductAudiences.id,
-      Users.id,
     )
     .limit(1)
 
@@ -166,12 +182,10 @@ export const getProductByIdService = async (productId: string) => {
 
 export const createProductService = async (productData: any) => {
   try {
-    // Validaciones básicas
-    if (!productData) {
+    if (!productData)
       throw new Error('No se proporcionaron datos del producto.')
-    }
 
-    const { name, description, available_dates, services, ...rest } =
+    const { name, description, available_dates, amenities, ...rest } =
       productData
 
     if (!name || !description) {
@@ -188,23 +202,18 @@ export const createProductService = async (productData: any) => {
       throw new Error('El campo available_dates debe ser un array no vacío.')
     }
 
-    // Validar que se envíe el campo "services" como un array no vacío
-    if (!services || !Array.isArray(services)) {
-      throw new Error(
-        'El campo services es obligatorio y debe ser un array no vacío.',
-      )
+    if (!amenities || !Array.isArray(amenities)) {
+      throw new Error('El campo amenities debe ser un array no vacío.')
     }
 
-    // Validar que cada fecha sea una cadena de fecha válida
     const parsedDates = available_dates.map((date: string) => {
-      const parsedDate = new Date(date)
-      if (isNaN(parsedDate.getTime())) {
+      const parsed = new Date(date)
+      if (isNaN(parsed.getTime())) {
         throw new Error(`La fecha '${date}' no es válida.`)
       }
-      return parsedDate
+      return parsed
     })
 
-    // Formatear los datos a insertar (excluyendo "services", que se manejará en la tabla de unión)
     const formattedProductData = {
       ...rest,
       name,
@@ -212,18 +221,16 @@ export const createProductService = async (productData: any) => {
       available_dates: parsedDates,
     }
 
-    // Inserta el producto en la tabla Products
     const [newProduct] = await db
       .insert(Products)
       .values(formattedProductData)
       .returning()
 
-    // Inserta en la tabla de unión para asociar los servicios al producto
-    const joinRows = services.map((serviceId: string) => ({
+    const joinRows = amenities.map((amenityId: string) => ({
       productId: newProduct.id,
-      productServiceId: serviceId,
+      productAmenityId: amenityId,
     }))
-    await db.insert(ProductServicesProducts).values(joinRows).execute()
+    await db.insert(ProductAmenitiesProducts).values(joinRows).execute()
 
     return newProduct
   } catch (error) {
@@ -232,14 +239,85 @@ export const createProductService = async (productData: any) => {
   }
 }
 
+export const updateProductService = async (
+  productId: string,
+  productData: any,
+) => {
+  try {
+    const { name, description, available_dates, amenities, ...rest } =
+      productData
+
+    if (!name || !description) {
+      throw new Error(
+        'El nombre y la descripción del producto son obligatorios.',
+      )
+    }
+
+    if (
+      !available_dates ||
+      !Array.isArray(available_dates) ||
+      available_dates.length === 0
+    ) {
+      throw new Error('El campo available_dates debe ser un array no vacío.')
+    }
+
+    if (!amenities || !Array.isArray(amenities)) {
+      throw new Error('El campo amenities debe ser un array no vacío.')
+    }
+
+    const parsedDates = available_dates.map((date: string) => {
+      const parsed = new Date(date)
+      if (isNaN(parsed.getTime())) {
+        throw new Error(`La fecha '${date}' no es válida.`)
+      }
+      return parsed
+    })
+
+    // Actualizar producto
+    const [updatedProduct] = await db
+      .update(Products)
+      .set({
+        ...rest,
+        name,
+        description,
+        available_dates: parsedDates,
+      })
+      .where(eq(Products.id, productId))
+      .returning()
+
+    // Eliminar amenities actuales
+    await db
+      .delete(ProductAmenitiesProducts)
+      .where(eq(ProductAmenitiesProducts.productId, productId))
+
+    // Insertar nuevos amenities
+    const joinRows = amenities.map((amenityId: string) => ({
+      productId,
+      productAmenityId: amenityId,
+    }))
+    await db.insert(ProductAmenitiesProducts).values(joinRows).execute()
+
+    return updatedProduct
+  } catch (error) {
+    console.error('Error en updateProductService:', error)
+    throw error
+  }
+}
+
 export const deleteProductService = async (productId: string) => {
   try {
-    const deletedProduct = await db
+    await db
+      .delete(ProductAmenitiesProducts)
+      .where(eq(ProductAmenitiesProducts.productId, productId))
+
+    const [deletedProduct] = await db
       .delete(Products)
       .where(eq(Products.id, productId))
       .returning()
+
     return deletedProduct
   } catch (error) {
-    console.log(error)
+    console.error('Error en deleteProductService:', error)
+    throw error
   }
 }

@@ -1,7 +1,7 @@
 import { pgTable, primaryKey, text, uuid, varchar } from 'drizzle-orm/pg-core'
-import { Products } from './products';
+import { Products } from './products'
 
-export const ProductServices = pgTable('product_services', {
+export const ProductAmenities = pgTable('product_amenities', {
   id: uuid().primaryKey().defaultRandom().notNull(),
   name: varchar({ length: 155 }).notNull(),
   description: text().notNull(),
@@ -10,18 +10,24 @@ export const ProductServices = pgTable('product_services', {
     .notNull(),
 })
 
-export const ProductServicesProducts = pgTable(
-  'product_services_products',
+export const ProductAmenitiesProducts = pgTable(
+  'product_amenities_products',
   {
     productId: uuid('product_id')
       .references(() => Products.id)
       .notNull(),
-    productServiceId: uuid('product_service_id')
-      .references(() => ProductServices.id)
+    productAmenityId: uuid('product_amenity_id')
+      .references(() => ProductAmenities.id)
       .notNull(),
   },
-  (t) => [primaryKey({ columns: [t.productId, t.productServiceId] })]
-);
+  (t) => [primaryKey({ columns: [t.productId, t.productAmenityId] })],
+)
+
+export const ProductTypes = pgTable('product_types', {
+  id: uuid().primaryKey().defaultRandom().notNull(),
+  name: varchar({ length: 100 }).notNull(), // Ej: 'tour', 'rental', 'hotel', etc.
+  description: text().notNull(),
+})
 
 export const ProductCategories = pgTable('product_categories', {
   id: uuid().primaryKey().defaultRandom().notNull(),
