@@ -188,6 +188,13 @@ export const createProductService = async (productData: any) => {
       throw new Error('El campo available_dates debe ser un array no vacío.')
     }
 
+    // Validar que se envíe el campo "services" como un array no vacío
+    if (!services || !Array.isArray(services)) {
+      throw new Error(
+        'El campo services es obligatorio y debe ser un array no vacío.',
+      )
+    }
+
     // Validar que cada fecha sea una cadena de fecha válida
     const parsedDates = available_dates.map((date: string) => {
       const parsedDate = new Date(date)
@@ -197,11 +204,7 @@ export const createProductService = async (productData: any) => {
       return parsedDate
     })
 
-    if (services && !Array.isArray(services)) {
-      throw new Error('El campo services debe ser un array, si se proporciona.')
-    }
-
-    // Formatear los datos a insertar
+    // Formatear los datos a insertar (excluyendo "services", que se manejará en la tabla de unión)
     const formattedProductData = {
       ...rest,
       name,
@@ -215,14 +218,12 @@ export const createProductService = async (productData: any) => {
       .values(formattedProductData)
       .returning()
 
-    // Si se enviaron IDs de servicios, inserta en la tabla de unión
-    if (services && Array.isArray(services) && services.length > 0) {
-      const joinRows = services.map((serviceId: string) => ({
-        productId: newProduct.id,
-        productServiceId: serviceId,
-      }))
-      await db.insert(ProductServicesProducts).values(joinRows).execute()
-    }
+    // Inserta en la tabla de unión para asociar los servicios al producto
+    const joinRows = services.map((serviceId: string) => ({
+      productId: newProduct.id,
+      productServiceId: serviceId,
+    }))
+    await db.insert(ProductServicesProducts).values(joinRows).execute()
 
     return newProduct
   } catch (error) {

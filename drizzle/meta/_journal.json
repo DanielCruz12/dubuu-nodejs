@@ -15,6 +15,13 @@
       "when": 1743659318346,
       "tag": "0001_mushy_giant_man",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1743661487179,
+      "tag": "0002_nappy_firedrake",
+      "breakpoints": true
     }
   ]
 }

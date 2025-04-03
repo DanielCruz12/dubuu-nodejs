@@ -32,7 +32,6 @@ export const Products = pgTable('products', {
   itinerary: text('itinerary').array().default(['']),
   highlight: text().notNull().default(''),
   included: text().notNull().default(''),
-  services: uuid().array(),
   is_approved: boolean().notNull().default(false),
   max_people: integer().notNull(),
   duration: integer().notNull(),
