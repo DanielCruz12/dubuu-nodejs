@@ -52,6 +52,10 @@ export const Products = pgTable('products', {
   user_id: text()
     .references(() => Users.id)
     .notNull(),
+  is_active: boolean().notNull().default(true),
+
+  average_rating: decimal('average_rating', { precision: 8, scale: 2 }).default("0"),
+  total_reviews: integer('total_reviews').default(0),
 
   created_at: timestamp().notNull().defaultNow(),
   updated_at: timestamp().notNull().defaultNow(),

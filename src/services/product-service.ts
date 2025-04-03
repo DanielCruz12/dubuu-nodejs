@@ -3,6 +3,8 @@ import { Request } from 'express'
 import { Faqs, Products, Ratings, Users } from '../database/schemas'
 import {
   ProductCategories,
+  ProductServices,
+  ProductServicesProducts,
   TargetProductAudiences,
 } from '../database/schemas/product-catalogs'
 import { eq, sql, and } from 'drizzle-orm'
@@ -56,10 +58,8 @@ export const getProductsService = async (req: Request) => {
         id: TargetProductAudiences.id,
         name: TargetProductAudiences.name,
       },
-      average_rating: sql<number>`COALESCE(AVG(${Ratings.rating}), 0)`.as(
-        'average_rating',
-      ),
-      total_reviews: sql<number>`COUNT(${Ratings.id})`.as('total_reviews'),
+      average_rating: Products.average_rating,
+      total_reviews: Products.total_reviews,
     })
     .from(Products)
     .leftJoin(Ratings, eq(Products.id, Ratings.product_id))
@@ -115,11 +115,20 @@ export const getProductByIdService = async (productId: string) => {
         username: Users.username,
         email: Users.email,
       },
-      average_rating: sql<number>`COALESCE(AVG(${Ratings.rating}), 0)`.as(
-        'average_rating',
-      ),
+      average_rating: Products.average_rating,
+      total_reviews: Products.total_reviews,
 
-      total_reviews: sql<number>`COUNT(${Ratings.id})`.as('total_reviews'),
+      services: sql`
+      COALESCE(
+        json_agg(
+          json_build_object(
+            'id', ${ProductServices.id},
+            'name', ${ProductServices.name}
+          )
+        ) FILTER (WHERE ${ProductServices.id} IS NOT NULL),
+        '[]'
+      )
+    `.as('services'),
     })
     .from(Products)
     .where(and(eq(Products.id, productId), eq(Products.is_approved, true)))
@@ -132,6 +141,16 @@ export const getProductByIdService = async (productId: string) => {
     .innerJoin(
       TargetProductAudiences,
       eq(Products.target_product_audience_id, TargetProductAudiences.id),
+    )
+
+    // Join a la tabla de unión y luego a la tabla de servicios para traer sus datos:
+    .leftJoin(
+      ProductServicesProducts,
+      eq(Products.id, ProductServicesProducts.productId),
+    )
+    .leftJoin(
+      ProductServices,
+      eq(ProductServicesProducts.productServiceId, ProductServices.id),
     )
 
     .groupBy(
@@ -147,18 +166,70 @@ export const getProductByIdService = async (productId: string) => {
 
 export const createProductService = async (productData: any) => {
   try {
-    const formattedProductData = {
-      ...productData,
-      available_dates: productData.available_dates.map((date: string) => new Date(date)),
-    };
+    // Validaciones básicas
+    if (!productData) {
+      throw new Error('No se proporcionaron datos del producto.')
+    }
 
-    const [newProduct] = await db.insert(Products).values(formattedProductData).returning();
-    return newProduct;
+    const { name, description, available_dates, services, ...rest } =
+      productData
+
+    if (!name || !description) {
+      throw new Error(
+        'El nombre y la descripción del producto son obligatorios.',
+      )
+    }
+
+    if (
+      !available_dates ||
+      !Array.isArray(available_dates) ||
+      available_dates.length === 0
+    ) {
+      throw new Error('El campo available_dates debe ser un array no vacío.')
+    }
+
+    // Validar que cada fecha sea una cadena de fecha válida
+    const parsedDates = available_dates.map((date: string) => {
+      const parsedDate = new Date(date)
+      if (isNaN(parsedDate.getTime())) {
+        throw new Error(`La fecha '${date}' no es válida.`)
+      }
+      return parsedDate
+    })
+
+    if (services && !Array.isArray(services)) {
+      throw new Error('El campo services debe ser un array, si se proporciona.')
+    }
+
+    // Formatear los datos a insertar
+    const formattedProductData = {
+      ...rest,
+      name,
+      description,
+      available_dates: parsedDates,
+    }
+
+    // Inserta el producto en la tabla Products
+    const [newProduct] = await db
+      .insert(Products)
+      .values(formattedProductData)
+      .returning()
+
+    // Si se enviaron IDs de servicios, inserta en la tabla de unión
+    if (services && Array.isArray(services) && services.length > 0) {
+      const joinRows = services.map((serviceId: string) => ({
+        productId: newProduct.id,
+        productServiceId: serviceId,
+      }))
+      await db.insert(ProductServicesProducts).values(joinRows).execute()
+    }
+
+    return newProduct
   } catch (error) {
-    console.error('Error en createProductService:', error);
-    throw error;
+    console.error('Error en createProductService:', error)
+    throw error
   }
-};
+}
 
 export const deleteProductService = async (productId: string) => {
   try {

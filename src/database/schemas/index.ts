@@ -8,4 +8,5 @@ export {
   ProductServices,
   ProductCategories,
   TargetProductAudiences,
+  ProductServicesProducts
 } from '../schemas/product-catalogs'

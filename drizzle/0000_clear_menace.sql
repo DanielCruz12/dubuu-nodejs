@@ -36,6 +36,12 @@ CREATE TABLE "product_services" (
 	"category_id" uuid NOT NULL
 );
 --> statement-breakpoint
+CREATE TABLE "product_services_products" (
+	"product_id" uuid NOT NULL,
+	"product_service_id" uuid NOT NULL,
+	CONSTRAINT "product_services_products_product_id_product_service_id_pk" PRIMARY KEY("product_id","product_service_id")
+);
+--> statement-breakpoint
 CREATE TABLE "products" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"name" varchar(155) NOT NULL,
@@ -59,6 +65,9 @@ CREATE TABLE "products" (
 	"product_category_id" uuid NOT NULL,
 	"target_product_audience_id" uuid NOT NULL,
 	"user_id" text NOT NULL,
+	"is_active" boolean DEFAULT true NOT NULL,
+	"average_rating" numeric(8, 2) DEFAULT '0',
+	"total_reviews" integer DEFAULT 0,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
@@ -108,6 +117,8 @@ ALTER TABLE "comments" ADD CONSTRAINT "comments_user_id_users_id_fk" FOREIGN KEY
 ALTER TABLE "faqs" ADD CONSTRAINT "faqs_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "faqs" ADD CONSTRAINT "faqs_product_id_products_id_fk" FOREIGN KEY ("product_id") REFERENCES "public"."products"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "product_services" ADD CONSTRAINT "product_services_category_id_product_categories_id_fk" FOREIGN KEY ("category_id") REFERENCES "public"."product_categories"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "product_services_products" ADD CONSTRAINT "product_services_products_product_id_products_id_fk" FOREIGN KEY ("product_id") REFERENCES "public"."products"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "product_services_products" ADD CONSTRAINT "product_services_products_product_service_id_product_services_id_fk" FOREIGN KEY ("product_service_id") REFERENCES "public"."product_services"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "products" ADD CONSTRAINT "products_product_service_id_product_services_id_fk" FOREIGN KEY ("product_service_id") REFERENCES "public"."product_services"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "products" ADD CONSTRAINT "products_product_category_id_product_categories_id_fk" FOREIGN KEY ("product_category_id") REFERENCES "public"."product_categories"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "products" ADD CONSTRAINT "products_target_product_audience_id_target_product_audiences_id_fk" FOREIGN KEY ("target_product_audience_id") REFERENCES "public"."target_product_audiences"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
@@ -115,3 +126,41 @@ ALTER TABLE "products" ADD CONSTRAINT "products_user_id_users_id_fk" FOREIGN KEY
 ALTER TABLE "ratings" ADD CONSTRAINT "ratings_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "ratings" ADD CONSTRAINT "ratings_product_id_products_id_fk" FOREIGN KEY ("product_id") REFERENCES "public"."products"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "users" ADD CONSTRAINT "users_role_id_user_roles_id_fk" FOREIGN KEY ("role_id") REFERENCES "public"."user_roles"("id") ON DELETE no action ON UPDATE no action;
+
+-- Función para actualizar average_rating y total_reviews en la tabla products
+CREATE OR REPLACE FUNCTION update_product_rating() RETURNS TRIGGER AS $$
+BEGIN
+  UPDATE products
+  SET 
+    average_rating = (
+      SELECT COALESCE(AVG(r.rating), 0)
+      FROM ratings r
+      WHERE r.product_id = NEW.product_id
+    ),
+    total_reviews = (
+      SELECT COUNT(*)
+      FROM ratings r
+      WHERE r.product_id = NEW.product_id
+    )
+  WHERE id = NEW.product_id;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger para inserciones en la tabla ratings
+CREATE TRIGGER rating_insert_trigger
+AFTER INSERT ON ratings
+FOR EACH ROW
+EXECUTE FUNCTION update_product_rating();
+
+-- Trigger para actualizaciones en la tabla ratings
+CREATE TRIGGER rating_update_trigger
+AFTER UPDATE ON ratings
+FOR EACH ROW
+EXECUTE FUNCTION update_product_rating();
+
+-- Trigger para eliminaciones en la tabla ratings
+CREATE TRIGGER rating_delete_trigger
+AFTER DELETE ON ratings
+FOR EACH ROW
+EXECUTE FUNCTION update_product_rating();

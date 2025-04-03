@@ -1,5 +1,5 @@
 {
-  "id": "0a1657f1-f2ff-4f3e-9508-dbeeb4292841",
+  "id": "ab249831-7da0-4a65-b850-4fcaa24552d3",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -299,6 +299,66 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
+    "public.product_services_products": {
+      "name": "product_services_products",
+      "schema": "",
+      "columns": {
+        "product_id": {
+          "name": "product_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "product_service_id": {
+          "name": "product_service_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "product_services_products_product_id_products_id_fk": {
+          "name": "product_services_products_product_id_products_id_fk",
+          "tableFrom": "product_services_products",
+          "tableTo": "products",
+          "columnsFrom": [
+            "product_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "product_services_products_product_service_id_product_services_id_fk": {
+          "name": "product_services_products_product_service_id_product_services_id_fk",
+          "tableFrom": "product_services_products",
+          "tableTo": "product_services",
+          "columnsFrom": [
+            "product_service_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "product_services_products_product_id_product_service_id_pk": {
+          "name": "product_services_products_product_id_product_service_id_pk",
+          "columns": [
+            "product_id",
+            "product_service_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.products": {
       "name": "products",
       "schema": "",
@@ -445,6 +505,27 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "is_active": {
+          "name": "is_active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "average_rating": {
+          "name": "average_rating",
+          "type": "numeric(8, 2)",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'0'"
+        },
+        "total_reviews": {
+          "name": "total_reviews",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 0
         },
         "created_at": {
           "name": "created_at",
