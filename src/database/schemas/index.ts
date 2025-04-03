@@ -2,6 +2,7 @@ export { Faqs } from '../schemas/faqs'
 export { Comments } from '../schemas/comments'
 export { Products } from '../schemas/products'
 export { Ratings } from '../schemas/ratings'
+export { Bookings } from '../schemas/bookings'
 export { Roles, Users } from '../schemas/users'
 export {
   ProductServices,

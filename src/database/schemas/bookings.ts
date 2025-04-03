@@ -4,12 +4,8 @@ import { Products } from './products'
 
 export const Bookings = pgTable('bookings', {
   id: uuid().primaryKey().defaultRandom().notNull(),
-  user_id: text()
-    .references(() => Users.id)
-    .notNull(),
-  product_id: uuid()
-    .references(() => Products.id)
-    .notNull(),
+  user_id: text().references(() => Users.id),
+  product_id: uuid().references(() => Products.id),
   status: text({ enum: ['completed', 'in-process', 'canceled'] }).default(
     'in-process',
   ),

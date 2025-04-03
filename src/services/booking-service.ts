@@ -1,7 +1,6 @@
 import { eq } from 'drizzle-orm'
 import { db } from '../database/db'
 import { Users } from '../database/schemas'
-import { Products } from '../database/schemas'
 import { Bookings } from '../database/schemas/bookings'
 
 export const getBookingsService = async () => {
