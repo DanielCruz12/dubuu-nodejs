@@ -6,6 +6,7 @@ export { Bookings } from './bookings'
 export { Tours } from './tours'
 export { Roles, Users } from './users'
 export {
+  ProductTypes,
   ProductAmenities,
   ProductCategories,
   TargetProductAudiences,
