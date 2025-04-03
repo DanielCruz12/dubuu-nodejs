@@ -32,7 +32,7 @@ export const Products = pgTable('products', {
   itinerary: text('itinerary').array().default(['']),
   highlight: text().notNull().default(''),
   included: text().notNull().default(''),
-
+  services: uuid().array(),
   is_approved: boolean().notNull().default(false),
   max_people: integer().notNull(),
   duration: integer().notNull(),
@@ -40,9 +40,6 @@ export const Products = pgTable('products', {
   videos: text('videos').array().default(['']),
   files: text('files').array().default(['']),
   banner: text('banner'),
-  product_service_id: uuid()
-    .references(() => ProductServices.id)
-    .notNull(),
   product_category_id: uuid()
     .references(() => ProductCategories.id)
     .notNull(),
@@ -54,7 +51,9 @@ export const Products = pgTable('products', {
     .notNull(),
   is_active: boolean().notNull().default(true),
 
-  average_rating: decimal('average_rating', { precision: 8, scale: 2 }).default("0"),
+  average_rating: decimal('average_rating', { precision: 8, scale: 2 }).default(
+    '0',
+  ),
   total_reviews: integer('total_reviews').default(0),
 
   created_at: timestamp().notNull().defaultNow(),
