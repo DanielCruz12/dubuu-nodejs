@@ -9,17 +9,17 @@ import {
   TargetProductAudiences,
 } from '../database/schemas/product-catalogs'
 import { eq, sql, and, ilike, gte, lte, desc } from 'drizzle-orm'
+import { createTourHandler } from '../handlers/create-tour'
 
 export const getProductsService = async (req: Request) => {
   const page = parseInt(req.query.page as string) || 1
   const limit = parseInt(req.query.limit as string) || 10
   const offset = (page - 1) * limit
 
-  // Filtro de categoría, por defecto "tours"
-  const category = req.query.category?.toString().toLowerCase() || 'tours'
+  const productTypeName =
+    req.query.product_type?.toString().toLowerCase() || 'tours'
   const search = req.query.search?.toString()
   const country = req.query.country?.toString()
-  const isApproved = req.query.is_approved === 'true'
   const minPrice = req.query.min_price
     ? parseFloat(req.query.min_price as string)
     : undefined
@@ -28,7 +28,7 @@ export const getProductsService = async (req: Request) => {
     : undefined
 
   const whereConditions = [
-    eq(ProductCategories.name, category),
+    ilike(ProductTypes.name, productTypeName),
     ...(search
       ? [
           ilike(Products.name, `%${search}%`),
@@ -36,38 +36,42 @@ export const getProductsService = async (req: Request) => {
         ]
       : []),
     ...(country ? [eq(Products.country, country)] : []),
-    ...(req.query.is_approved ? [eq(Products.is_approved, isApproved)] : []),
-    ...(minPrice !== undefined
-      ? [gte(Products.price, minPrice.toString())]
+    ...(req.query.is_approved
+      ? [eq(Products.is_approved, req.query.is_approved === 'true')]
       : []),
-    ...(maxPrice !== undefined
-      ? [lte(Products.price, maxPrice.toString())]
-      : []),
+    ...(minPrice !== undefined ? [gte(Products.price, String(minPrice))] : []),
+    ...(maxPrice !== undefined ? [lte(Products.price, String(maxPrice))] : []),
   ]
 
   const [{ count: total = 0 } = {}] = await db
     .select({ count: sql<number>`COUNT(*)` })
     .from(Products)
-    .innerJoin(
-      ProductCategories,
-      eq(Products.product_category_id, ProductCategories.id),
-    )
+    .innerJoin(ProductTypes, eq(Products.product_type_id, ProductTypes.id))
     .where(and(...whereConditions))
 
   const products = await db
     .select({
-      product: { ...Products },
-
-      product_category: {
-        id: ProductCategories.id,
-        name: ProductCategories.name,
+      product: {
+        ...Products,
+        product_category: {
+          id: ProductCategories.id,
+          name: ProductCategories.name,
+        },
+        target_audience: {
+          id: TargetProductAudiences.id,
+          name: TargetProductAudiences.name,
+        },
+        product_type: {
+          id: ProductTypes.id,
+          name: ProductTypes.name,
+        },
+        tour: {
+          max_people: Tours.max_people,
+          duration: Tours.duration,
+        },
+        average_rating: Products.average_rating,
+        total_reviews: Products.total_reviews,
       },
-      target_audience: {
-        id: TargetProductAudiences.id,
-        name: TargetProductAudiences.name,
-      },
-      average_rating: Products.average_rating,
-      total_reviews: Products.total_reviews,
     })
     .from(Products)
     .leftJoin(Ratings, eq(Products.id, Ratings.product_id))
@@ -79,8 +83,15 @@ export const getProductsService = async (req: Request) => {
       TargetProductAudiences,
       eq(Products.target_product_audience_id, TargetProductAudiences.id),
     )
-    .where(eq(ProductCategories.name, category))
-    .groupBy(Products.id, ProductCategories.id, TargetProductAudiences.id)
+    .innerJoin(ProductTypes, eq(Products.product_type_id, ProductTypes.id))
+    .leftJoin(Tours, eq(Products.id, Tours.product_id))
+    .groupBy(
+      Products.id,
+      ProductCategories.id,
+      TargetProductAudiences.id,
+      ProductTypes.id,
+      Tours.product_id,
+    )
     .orderBy(desc(Products.created_at))
     .limit(limit)
     .offset(offset)
@@ -88,7 +99,9 @@ export const getProductsService = async (req: Request) => {
   const totalPages = Math.ceil(total / limit)
 
   return {
-    data: products,
+    data: products.map((p) => ({
+      ...p.product, 
+    })),
     pagination: {
       total,
       totalPages,
@@ -101,44 +114,47 @@ export const getProductsService = async (req: Request) => {
 export const getProductByIdService = async (productId: string) => {
   const product = await db
     .select({
-      product: { ...Products },
-
-      product_category: {
-        id: ProductCategories.id,
-        name: ProductCategories.name,
-      },
-      target_audience: {
-        id: TargetProductAudiences.id,
-        name: TargetProductAudiences.name,
-      },
-      user: {
-        id: Users.id,
-        username: Users.username,
-        email: Users.email,
-      },
-      average_rating: Products.average_rating,
-      total_reviews: Products.total_reviews,
-
-      amenities: sql`
-      COALESCE(
-        json_agg(
-          json_build_object(
-            'id', ${ProductAmenities.id},
-            'name', ${ProductAmenities.name}
-          )
-        ) FILTER (WHERE ${ProductAmenities.id} IS NOT NULL),
-        '[]'
-      )
-    `.as('amenities'),
-
-      tour: {
-        departure_point: Tours.departure_point,
-        available_dates: Tours.available_dates,
-        max_people: Tours.max_people,
-        itinerary: Tours.itinerary,
-        highlight: Tours.highlight,
-        included: Tours.included,
-        duration: Tours.duration,
+      product: {
+        ...Products,
+        product_category: {
+          id: ProductCategories.id,
+          name: ProductCategories.name,
+        },
+        target_audience: {
+          id: TargetProductAudiences.id,
+          name: TargetProductAudiences.name,
+        },
+        product_type: {
+          id: ProductTypes.id,
+          name: ProductTypes.name,
+        },
+        user: {
+          id: Users.id,
+          username: Users.username,
+          email: Users.email,
+        },
+        average_rating: Products.average_rating,
+        total_reviews: Products.total_reviews,
+        amenities: sql`
+        COALESCE(
+          json_agg(
+            json_build_object(
+              'id', ${ProductAmenities.id},
+              'name', ${ProductAmenities.name}
+            )
+          ) FILTER (WHERE ${ProductAmenities.id} IS NOT NULL),
+          '[]'
+        )
+      `.as('amenities'),
+        tour: {
+          departure_point: Tours.departure_point,
+          available_dates: Tours.available_dates,
+          max_people: Tours.max_people,
+          itinerary: Tours.itinerary,
+          highlight: Tours.highlight,
+          included: Tours.included,
+          duration: Tours.duration,
+        },
       },
     })
     .from(Products)
@@ -153,9 +169,8 @@ export const getProductByIdService = async (productId: string) => {
       TargetProductAudiences,
       eq(Products.target_product_audience_id, TargetProductAudiences.id),
     )
+    .innerJoin(ProductTypes, eq(Products.product_type_id, ProductTypes.id))
     .leftJoin(Tours, eq(Products.id, Tours.product_id))
-
-    // Join a la tabla de unión y luego a la tabla de amenities para traer sus datos:
     .leftJoin(
       ProductAmenitiesProducts,
       eq(Products.id, ProductAmenitiesProducts.productId),
@@ -164,9 +179,6 @@ export const getProductByIdService = async (productId: string) => {
       ProductAmenities,
       eq(ProductAmenitiesProducts.productAmenityId, ProductAmenities.id),
     )
-
-    .leftJoin(ProductTypes, eq(Products.product_type_id, ProductTypes.id))
-
     .groupBy(
       Users.id,
       Products.id,
@@ -177,60 +189,89 @@ export const getProductByIdService = async (productId: string) => {
     )
     .limit(1)
 
-  return product[0]
+  return product[0]?.product || null
 }
 
 export const createProductService = async (productData: any) => {
+  const {
+    name,
+    description,
+    price,
+    user_id,
+    address,
+    country,
+    product_category_id,
+    target_product_audience_id,
+    product_type_id,
+    images = [],
+    files = [],
+    videos = [],
+    banner = '',
+    is_approved = false,
+    is_active,
+  } = productData
+
+  // Validaciones generales
+  if (
+    !name ||
+    !description ||
+    !price ||
+    !user_id ||
+    !product_category_id ||
+    !target_product_audience_id ||
+    !product_type_id ||
+    !country
+  ) {
+    throw new Error('Faltan campos obligatorios del producto.')
+  }
+
+  const [type] = await db
+    .select()
+    .from(ProductTypes)
+    .where(eq(ProductTypes.id, product_type_id))
+
+  if (!type) {
+    throw new Error('Tipo de producto no válido.')
+  }
+
   try {
-    if (!productData)
-      throw new Error('No se proporcionaron datos del producto.')
-
-    const { name, description, available_dates, amenities, ...rest } =
-      productData
-
-    if (!name || !description) {
-      throw new Error(
-        'El nombre y la descripción del producto son obligatorios.',
-      )
-    }
-
-    if (
-      !available_dates ||
-      !Array.isArray(available_dates) ||
-      available_dates.length === 0
-    ) {
-      throw new Error('El campo available_dates debe ser un array no vacío.')
-    }
-
-    if (!amenities || !Array.isArray(amenities)) {
-      throw new Error('El campo amenities debe ser un array no vacío.')
-    }
-
-    const parsedDates = available_dates.map((date: string) => {
-      const parsed = new Date(date)
-      if (isNaN(parsed.getTime())) {
-        throw new Error(`La fecha '${date}' no es válida.`)
-      }
-      return parsed
-    })
-
-    const formattedProductData = {
-      ...rest,
-      name,
-      description,
-      available_dates: parsedDates,
-    }
-
     const [newProduct] = await db
       .insert(Products)
-      .values(formattedProductData)
+      .values({
+        name,
+        description,
+        price,
+        user_id,
+        address,
+        country,
+        product_category_id,
+        target_product_audience_id,
+        product_type_id,
+        images,
+        files,
+        videos,
+        banner,
+        is_approved,
+        is_active,
+      })
       .returning()
 
-    const joinRows = amenities.map((amenityId: string) => ({
-      productId: newProduct.id,
-      productAmenityId: amenityId,
-    }))
-    await db.insert(ProductAmenitiesProducts).values(joinRows).execute()
+    const typeName = type.name.toLowerCase()
+
+    switch (typeName) {
+      case 'tours':
+        await createTourHandler(productData, newProduct.id)
+        break
+
+      // case 'rentals':
+      //   await createRentalHandler(productData, newProduct.id)
+      //   break
+
+      default:
+        throw new Error(
+          `No hay manejador definido para el tipo de producto: ${typeName}`,
+        )
+    }
 
     return newProduct
   } catch (error) {
