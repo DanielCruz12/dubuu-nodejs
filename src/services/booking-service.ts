@@ -40,55 +40,65 @@ export const getBookingByIdService = async (bookingId: string) => {
 // 🔍 Obtener todas las reservas de un usuario
 export const getBookingsForUserService = async (userId: string) => {
   if (!userId) {
-    console.error('400:', statusCodes[400])
-    throw new Error('El ID del usuario es obligatorio.')
+    console.error('400:', statusCodes[400]);
+    throw new Error('El ID del usuario es obligatorio.');
   }
 
   try {
-    const [user] = await db
-      .select({ id: Users.id })
-      .from(Users)
-      .where(eq(Users.id, userId))
-      .limit(1)
+    const bookings = await db
+      .select()
+      .from(Bookings)
+      .where(eq(Bookings.user_id, userId))
+      .execute();
+
+    return bookings;
+  } catch (error) {
+    console.error('500:', statusCodes[500], '-', error);
+    throw new Error('Error al obtener las reservas del usuario.');
+  }
+};
+
+
+export const getBookingsByProductIdService = async (productId: string) => {
+  if (!productId) {
+    console.error('400:', statusCodes[400])
+    throw new Error('El ID del producto es obligatorio.')
+  }
+
+  try {
+    const bookings = await db
+      .select()
+      .from(Bookings)
+      .where(eq(Bookings.product_id, productId))
       .execute()
 
-    if (!user) {
-      console.error('404:', statusCodes[404])
-      throw new Error('Usuario no encontrado.')
-    }
-
-    const result = await db
-      .select({
-        userId: Users.id,
-        userName: Users.username,
-        bookingId: Bookings.id,
-        productId: Bookings.product_id,
-        status: Bookings.status,
-        bookingCreatedAt: Bookings.created_at,
-        bookingUpdatedAt: Bookings.updated_at,
-      })
-      .from(Users)
-      .innerJoin(Bookings, eq(Users.id, Bookings.user_id))
-      .where(eq(Users.id, userId))
-      .execute()
-
-    if (result.length === 0) {
-      console.error('404:', statusCodes[404])
-      throw new Error('No se encontraron reservas para este usuario.')
-    }
-
-    return result
+    return bookings
   } catch (error) {
     console.error('500:', statusCodes[500], '-', error)
-    throw new Error('Error al obtener las reservas del usuario.')
+    throw new Error('Error al obtener las reservas del producto.')
   }
 }
 
 // ➕ Crear nueva reserva
 export const createBookingService = async (bookingData: any) => {
-  if (!bookingData || !bookingData.user_id || !bookingData.product_id) {
-    console.error('400:', statusCodes[400])
-    throw new Error('Los campos user_id y product_id son obligatorios.')
+  const requiredFields = [
+    'user_id',
+    'product_id',
+    'payment_link_id',
+    'payment_url',
+    'qr_url',
+  ]
+
+  const missingFields = requiredFields.filter((field) => !bookingData[field])
+
+  if (missingFields.length > 0) {
+    console.error(
+      '400:',
+      statusCodes[400],
+      '-',
+      `Faltan campos: ${missingFields.join(', ')}`,
+    )
+    throw new Error(`Los campos ${missingFields.join(', ')} son obligatorios.`)
   }
 
   try {
@@ -96,6 +106,7 @@ export const createBookingService = async (bookingData: any) => {
       .insert(Bookings)
       .values(bookingData)
       .returning()
+
     return newBooking
   } catch (error) {
     console.error('500:', statusCodes[500], '-', error)

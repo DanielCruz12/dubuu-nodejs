@@ -32,6 +32,22 @@ export const getBookingById = async (req: Request, res: Response) => {
   }
 }
 
+import { getBookingsByProductIdService } from "../services/booking-service";
+
+export const getBookingsByProductId = async (req: Request, res: Response) => {
+  try {
+    const { productId } = req.params;
+    const bookings = await getBookingsByProductIdService(productId);
+    res.status(200).json(bookings);
+  } catch (error: any) {
+    const status = error.status || 500;
+    res.status(status).json({
+      message: error.message || "Error al obtener reservas del producto.",
+    });
+  }
+};
+
+
 export const getUserBookings = async (req: Request, res: Response) => {
   try {
     const { userId } = req.params
@@ -47,12 +63,16 @@ export const getUserBookings = async (req: Request, res: Response) => {
 
 export const createBooking = async (req: Request, res: Response) => {
   try {
-    const newBooking = await createBookingService(req.body)
-    res.status(201).json(newBooking)
-  } catch (error) {
-    res.status(500).json({ message: 'Internal Server Error' })
+    const newBooking = await createBookingService(req.body);
+    res.status(201).json(newBooking);
+  } catch (error: any) {
+    const status = error.status || 500;
+    res.status(status).json({
+      message: error.message || "Error al crear la reserva.",
+    });
   }
-}
+};
+
 
 export const updateBooking = async (req: Request, res: Response) => {
   try {
