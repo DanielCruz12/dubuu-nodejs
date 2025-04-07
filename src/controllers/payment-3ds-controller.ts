@@ -65,7 +65,7 @@ export const handleCreate3DSTransaction = async (
       idPais: country,
       idRegion: state,
       codigoPostal: zipCode,
-      telefono: phone,
+      telefono: '77886116',
     }
 
     const result = await createTransaction3DS(payload)
