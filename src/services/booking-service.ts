@@ -80,6 +80,7 @@ export const getBookingsByProductIdService = async (productId: string) => {
 
 // ➕ Crear nueva reserva
 export const createBookingService = async (bookingData: any) => {
+  console.log(bookingData)
   const requiredFields = [
     'user_id',
     'product_id',

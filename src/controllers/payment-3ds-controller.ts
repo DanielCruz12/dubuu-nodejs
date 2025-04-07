@@ -79,25 +79,6 @@ export const handleCreate3DSTransaction = async (
       });
     }
 
-    const bookingPayload = {
-      user_id,
-      product_id,
-      first_name: firstName,
-      last_name: lastName,
-      email,
-      phone,
-      id_region: state,
-      country,
-      zip_code: zipCode,
-      tickets: tickets || 1,
-      total,
-      paymentMethod,
-      idTransaccion: result.idTransaccion,
-      urlCompletarPago3Ds: result.urlCompletarPago3Ds,
-    }
-
-    await createBookingService(bookingPayload)
-
     return res.status(200).json(result)
   } catch (error: any) {
     console.error("Error en createTransaction3DS:", error);
