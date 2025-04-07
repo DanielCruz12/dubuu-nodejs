@@ -30,11 +30,9 @@ export const handleCreate3DSTransaction = async (
       typeof cardExpiry !== 'string' ||
       !cardExpiry.includes('/')
     ) {
-      return res
-        .status(400)
-        .json({
-          message: 'Formato de fecha de expiración inválido. Esperado MM/YY',
-        })
+      return res.status(400).json({
+        message: 'Formato de fecha de expiración inválido. Esperado MM/YY',
+      })
     }
 
     // Separar mes/año de expiración
@@ -69,6 +67,15 @@ export const handleCreate3DSTransaction = async (
     }
 
     const result = await createTransaction3DS(payload)
+
+    if (!result) {
+      return res
+        .status(502)
+        .json({
+          message:
+            'Error al procesar el pago. Intenta de nuevo o usa otra tarjeta.',
+        })
+    }
 
     return res.status(200).json(result)
   } catch (error: any) {

@@ -19,7 +19,7 @@ export const createTransaction3DS = async (payload: any) => {
       },
     )
 
-    return response
+    return response.data
   } catch (error: any) {
     console.error(
       'Error en createTransaction3DS:',
