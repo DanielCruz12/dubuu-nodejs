@@ -5,6 +5,7 @@ import {
   uuid,
   integer,
   boolean,
+  decimal,
 } from 'drizzle-orm/pg-core'
 import { Users } from './users'
 import { Products } from './products'
@@ -20,7 +21,7 @@ export const Bookings = pgTable('bookings', {
   ),
   is_live: boolean('is_live'),
   tickets: integer('tickets').default(1),
-  total: integer('total').default(0),
+  total: decimal({ precision: 10, scale: 2 }).notNull(),
 
   first_name: text('first_name'),
   last_name: text('last_name'),
