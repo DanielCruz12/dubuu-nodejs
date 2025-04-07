@@ -40,8 +40,8 @@ export const getBookingByIdService = async (bookingId: string) => {
 // 🔍 Obtener todas las reservas de un usuario
 export const getBookingsForUserService = async (userId: string) => {
   if (!userId) {
-    console.error('400:', statusCodes[400]);
-    throw new Error('El ID del usuario es obligatorio.');
+    console.error('400:', statusCodes[400])
+    throw new Error('El ID del usuario es obligatorio.')
   }
 
   try {
@@ -49,15 +49,14 @@ export const getBookingsForUserService = async (userId: string) => {
       .select()
       .from(Bookings)
       .where(eq(Bookings.user_id, userId))
-      .execute();
+      .execute()
 
-    return bookings;
+    return bookings
   } catch (error) {
-    console.error('500:', statusCodes[500], '-', error);
-    throw new Error('Error al obtener las reservas del usuario.');
+    console.error('500:', statusCodes[500], '-', error)
+    throw new Error('Error al obtener las reservas del usuario.')
   }
-};
-
+}
 
 export const getBookingsByProductIdService = async (productId: string) => {
   if (!productId) {
@@ -84,9 +83,14 @@ export const createBookingService = async (bookingData: any) => {
   const requiredFields = [
     'user_id',
     'product_id',
-    'payment_link_id',
-    'payment_url',
-    'qr_url',
+    'first_name',
+    'last_name',
+    'email',
+    'phone',
+    'paymentMethod',
+    'country',
+    'idTransaccion',
+    'urlCompletarPago3Ds',
   ]
 
   const missingFields = requiredFields.filter((field) => !bookingData[field])
@@ -142,6 +146,34 @@ export const updateBookingService = async (
     throw new Error('Error al actualizar la reserva.')
   }
 }
+
+export const updateBookingStatusByTransactionId = async (
+  transactionId: string,
+  newStatus: 'completed' | 'in-process' | 'canceled',
+) => {
+  if (!transactionId) {
+    console.error('400:', statusCodes[400])
+    throw new Error('El ID de la transacción es obligatorio.')
+  }
+
+  try {
+    const [updatedBooking] = await db
+      .update(Bookings)
+      .set({ status: newStatus })
+      .where(eq(Bookings.idTransaccion, transactionId))
+      .returning()
+
+    if (!updatedBooking) {
+      console.warn('⚠️ Transacción recibida pero no hay booking asociado.')
+    }
+
+    return updatedBooking
+  } catch (error) {
+    console.error('500:', statusCodes[500], '-', error)
+    throw new Error('Error al actualizar el estado del booking.')
+  }
+}
+
 
 // ❌ Eliminar una reserva
 export const deleteBookingService = async (bookingId: string) => {

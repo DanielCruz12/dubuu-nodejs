@@ -7,6 +7,7 @@ import wompiRouter from './routes/v1/payment-routes'
 import { handleWebHook } from './controllers/clerk-webhook-controller'
 import crypto from 'crypto'
 import express, { Request, Response } from 'express'
+import { updateBookingStatusByTransactionId } from './services/booking-service'
 
 dotenv.config()
 
@@ -38,7 +39,7 @@ app.use(
 )
 
 // Webhook handler
-app.post('/webhook-wompi', (req: Request, res: Response) => {
+app.post('/webhook-wompi', async (req: Request, res: Response) => {
   const rawBody = (req as any).rawBody // o usa el tipo extendido si ya definiste rawBody correctamente
   const wompiHashHeader = req.headers['wompi_hash']
 
@@ -58,6 +59,22 @@ app.post('/webhook-wompi', (req: Request, res: Response) => {
   const webhookData = req.body
   console.log('✅ Webhook verificado:', webhookData)
   //! cambiar estado al booking (pagado)
+
+  try {
+    const transactionId = webhookData?.transaccion?.idTransaccion
+
+    if (transactionId) {
+      await updateBookingStatusByTransactionId(transactionId, 'completed')
+      console.log(`🎉 Estado del booking actualizado para transacción ${transactionId}`)
+    } else {
+      console.warn('⚠️ No se encontró ID de transacción en el webhook')
+    }
+
+    res.sendStatus(200)
+  } catch (error) {
+    console.error('🚨 Error al manejar el webhook:', error)
+    res.status(500).send('Error interno del servidor al manejar el webhook.')
+  }
 
   // Aquí puedes manejar los datos del webhook (verificar estado, guardar en DB, etc.)
   res.sendStatus(200)

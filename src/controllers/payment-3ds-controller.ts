@@ -1,6 +1,7 @@
 // controllers/payment-controller.ts
 import { Request, Response } from 'express'
 import { createTransaction3DS } from '../services/payment-3ds-service'
+import { createBookingService } from '../services/booking-service'
 
 const API_URL = process.env.API_URL
 
@@ -23,6 +24,10 @@ export const handleCreate3DSTransaction = async (
       cardExpiry,
       cardCvc,
       total,
+      user_id,
+      product_id,
+      tickets,
+      paymentMethod,
     } = req.body
 
     if (
@@ -68,19 +73,39 @@ export const handleCreate3DSTransaction = async (
 
     const result = await createTransaction3DS(payload)
 
-    if (!result) {
-      return res
-        .status(502)
-        .json({
-          message:
-            'Error al procesar el pago. Intenta de nuevo o usa otra tarjeta.',
-        })
+    if (!result || !result.idTransaccion || !result.urlCompletarPago3Ds) {
+      return res.status(502).json({
+        message: 'Error al procesar el pago. Intenta de nuevo o usa otra tarjeta.',
+      });
     }
+
+    const bookingPayload = {
+      user_id,
+      product_id,
+      first_name: firstName,
+      last_name: lastName,
+      email,
+      phone,
+      id_region: state,
+      country,
+      zip_code: zipCode,
+      tickets: tickets || 1,
+      total,
+      paymentMethod,
+      idTransaccion: result.idTransaccion,
+      urlCompletarPago3Ds: result.urlCompletarPago3Ds,
+    }
+
+    await createBookingService(bookingPayload)
 
     return res.status(200).json(result)
   } catch (error: any) {
-    return res
-      .status(500)
-      .json({ message: error.message || 'Error al crear transacción 3DS' })
+    console.error("Error en createTransaction3DS:", error);
+
+    const mensajes = error?.mensajes || error?.response?.data?.mensajes;
+  
+    return res.status(400).json({
+      message: mensajes?.[0] || error.message || "Error al crear transacción 3DS",
+    });
   }
 }
