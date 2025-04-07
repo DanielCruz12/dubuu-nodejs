@@ -40,45 +40,42 @@ app.use(
 
 // Webhook handler
 app.post('/webhook-wompi', async (req: Request, res: Response) => {
-  const rawBody = (req as any).rawBody // o usa el tipo extendido si ya definiste rawBody correctamente
-  const wompiHashHeader = req.headers['wompi_hash']
+  const rawBody = (req as any).rawBody;
+  const wompiHashHeader = req.headers['wompi_hash'];
 
   if (!wompiHashHeader || typeof wompiHashHeader !== 'string') {
-    return res.status(400).send('Falta o es inválido el header wompi_hash')
+    return res.status(400).send('Falta o es inválido el header wompi_hash');
   }
 
-  const hmac = crypto.createHmac('sha256', WOMPI_SECRET)
-  hmac.update(rawBody)
-  const calculatedHash = hmac.digest('hex')
+  const hmac = crypto.createHmac('sha256', WOMPI_SECRET);
+  hmac.update(rawBody);
+  const calculatedHash = hmac.digest('hex');
 
   if (calculatedHash !== wompiHashHeader) {
-    console.log('Webhook inválido: hash no coincide')
-    return res.status(403).send('☠️❌❌Hash inválido')
+    console.log('Webhook inválido: hash no coincide');
+    return res.status(403).send('☠️❌❌Hash inválido');
   }
 
-  const webhookData = req.body
-  console.log('✅ Webhook verificado:', webhookData)
-  //! cambiar estado al booking (pagado)
+  const webhookData = req.body;
+  console.log('✅ Webhook verificado:', webhookData);
 
   try {
-    const transactionId = webhookData?.transaccion?.idTransaccion
+    const transactionId = webhookData?.IdTransaccion; // ✅ CORRECTO
 
     if (transactionId) {
-      await updateBookingStatusByTransactionId(transactionId, 'completed')
-      console.log(`🎉 Estado del booking actualizado para transacción ${transactionId}`)
+      await updateBookingStatusByTransactionId(transactionId, 'completed');
+      console.log(`🎉 Estado del booking actualizado para transacción ${transactionId}`);
     } else {
-      console.warn('⚠️ No se encontró ID de transacción en el webhook')
+      console.warn('⚠️ No se encontró ID de transacción en el webhook');
     }
 
-    res.sendStatus(200)
+    res.sendStatus(200); // ✅ Solo este
   } catch (error) {
-    console.error('🚨 Error al manejar el webhook:', error)
-    res.status(500).send('Error interno del servidor al manejar el webhook.')
+    console.error('🚨 Error al manejar el webhook:', error);
+    res.status(500).send('Error interno del servidor al manejar el webhook.');
   }
+});
 
-  // Aquí puedes manejar los datos del webhook (verificar estado, guardar en DB, etc.)
-  res.sendStatus(200)
-})
 
 setupSwagger(app)
 app.use(express.json())
