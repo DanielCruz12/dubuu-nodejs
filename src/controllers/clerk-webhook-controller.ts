@@ -78,9 +78,12 @@ export const handleWebHook = async (req: Request, res: Response) => {
         } as any)
         break
 
-      case 'user.deleted':
-        result = await deleteUser(id)
-        break
+        case 'user.deleted':
+          result = await deleteUser({
+            params: { id },
+          } as any)
+          break
+        
 
       // Session related events
       case 'session.ended':
