@@ -46,44 +46,40 @@ export const handleWebHook = async (req: Request, res: Response) => {
   }
 
   const { email_addresses, first_name, last_name, id, username } = evt.data
-
   const eventType = evt.type
+
   try {
+    let result
+
     switch (eventType) {
       // User related events
       case 'user.created':
       case 'user.createdAtEdge':
-        await createUser(
-          {
-            body: {
-              email: email_addresses[0].email_address,
-              id,
-              first_name: `${first_name}`,
-              last_name: `${last_name}`,
-              username,
-            },
-          } as Request,
-          res,
-        )
+        result = await createUser({
+          body: {
+            email: email_addresses[0].email_address,
+            id,
+            first_name: `${first_name}`,
+            last_name: `${last_name}`,
+            username,
+          },
+        } as Request)
         break
 
       case 'user.updated':
-        await updateUser(
-          {
-            params: { id },
-            body: {
-              email: email_addresses[0].email_address,
-              firstName: first_name,
-              lastName: last_name,
-              username
-            },
-          } as any,
-          res,
-        )
+        result = await updateUser({
+          params: { id },
+          body: {
+            email: email_addresses[0].email_address,
+            first_name,
+            last_name,
+            username,
+          },
+        } as any)
         break
 
       case 'user.deleted':
-        await deleteUser({ params: { id } } as any, res)
+        result = await deleteUser(id)
         break
 
       // Session related events
@@ -96,32 +92,27 @@ export const handleWebHook = async (req: Request, res: Response) => {
 
       // Other events
       case 'email.created':
-      case 'permission.created':
-      case 'permission.updated':
-      case 'permission.deleted':
-      case 'role.created':
-      case 'role.updated':
-      case 'role.deleted':
-      case 'organizationInvitation.created':
-      case 'organizationInvitation.revoked':
-      case 'organizationInvitation.accepted':
-      case 'organizationMembership.created':
-      case 'organizationMembership.updated':
-      case 'organizationMembership.deleted':
-      case 'organizationDomain.created':
-      case 'organizationDomain.updated':
-      case 'organizationDomain.deleted':
-        // Log these events for now
+        console.log(`Event received: ${eventType}`)
+
         break
 
       default:
         console.log(`Unhandled event type: ${eventType}`)
     }
-
-    res
-      .status(200)
-      .json({ success: true, message: 'Webhook processed successfully' })
+    if (!res.headersSent) {
+      res
+        .status(result?.status || 200)
+        .json(
+          result?.data || {
+            success: true,
+            message: 'Webhook processed successfully',
+          },
+        )
+    }
   } catch (error) {
-    res.status(500).json({ message: 'Error handling webhook event' })
+    console.error('Error handling event:', error)
+    if (!res.headersSent) {
+      res.status(500).json({ message: 'Error handling webhook event' })
+    }
   }
 }

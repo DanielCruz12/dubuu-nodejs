@@ -1,34 +1,22 @@
 import cors from 'cors'
 import dotenv from 'dotenv'
+import bodyParser from 'body-parser'
 import { apiRoutes } from './routes/v1'
 import { setupSwagger } from './swagger'
-import bodyParser from 'body-parser'
 import wompiRouter from './routes/v1/payment-routes'
-import { handleWebHook } from './controllers/clerk-webhook-controller'
-import crypto from 'crypto'
 import express, { Request, Response } from 'express'
-import { updateBookingStatusByTransactionId } from './services/booking-service'
+import { handleWebHook } from './controllers/clerk-webhook-controller'
+import { handleWompiWebhook } from './controllers/wompi-webhook-controller'
 
 dotenv.config()
-
-//* Create an Express application
 const app = express()
 
-// const allowedOrigin = process.env.FRONTEND_URL
-// app.use(
-//   cors({
-//     origin: allowedOrigin,
-//   }),
-// )
-//* Middleware to parse JSON bodies
 app.use(cors())
 app.post(
   '/api/webhooks',
   bodyParser.raw({ type: 'application/json' }),
   handleWebHook,
 )
-
-const WOMPI_SECRET = process.env.WOMPI_CLIENT_SECRET || 'TU_API_SECRET'
 
 app.use(
   bodyParser.json({
@@ -38,44 +26,7 @@ app.use(
   }),
 )
 
-// Webhook handler
-app.post('/webhook-wompi', async (req: Request, res: Response) => {
-  const rawBody = (req as any).rawBody;
-  const wompiHashHeader = req.headers['wompi_hash'];
-
-  if (!wompiHashHeader || typeof wompiHashHeader !== 'string') {
-    return res.status(400).send('Falta o es inválido el header wompi_hash');
-  }
-
-  const hmac = crypto.createHmac('sha256', WOMPI_SECRET);
-  hmac.update(rawBody);
-  const calculatedHash = hmac.digest('hex');
-
-  if (calculatedHash !== wompiHashHeader) {
-    console.log('Webhook inválido: hash no coincide');
-    return res.status(403).send('☠️❌❌Hash inválido');
-  }
-
-  const webhookData = req.body;
-  console.log('✅ Webhook verificado:', webhookData);
-
-  try {
-    const transactionId = webhookData?.IdTransaccion; // ✅ CORRECTO
-
-    if (transactionId) {
-      await updateBookingStatusByTransactionId(transactionId, 'completed');
-      console.log(`🎉 Estado del booking actualizado para transacción ${transactionId}`);
-    } else {
-      console.warn('⚠️ No se encontró ID de transacción en el webhook');
-    }
-
-    res.sendStatus(200); // ✅ Solo este
-  } catch (error) {
-    console.error('🚨 Error al manejar el webhook:', error);
-    res.status(500).send('Error interno del servidor al manejar el webhook.');
-  }
-});
-
+app.post('/webhook-wompi', handleWompiWebhook)
 
 setupSwagger(app)
 app.use(express.json())
