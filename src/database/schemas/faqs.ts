@@ -1,4 +1,4 @@
-import { pgTable, uuid, text } from 'drizzle-orm/pg-core'
+import { pgTable, uuid, text, timestamp } from 'drizzle-orm/pg-core'
 import { Products } from './products'
 import { Users } from './users'
 
@@ -12,4 +12,7 @@ export const Faqs = pgTable('faqs', {
   product_id: uuid()
     .references(() => Products.id)
     .notNull(),
+    
+  created_at: timestamp().notNull().defaultNow(),
+  updated_at: timestamp().notNull().defaultNow(),
 })

@@ -1,4 +1,5 @@
-ALTER TABLE "bookings" ADD COLUMN "selected_dates" timestamp with time zone[];
+ALTER TABLE "ratings" ADD COLUMN "status" boolean DEFAULT false NOT NULL;
+
 
 CREATE OR REPLACE FUNCTION update_product_rating() 
 RETURNS TRIGGER AS $$

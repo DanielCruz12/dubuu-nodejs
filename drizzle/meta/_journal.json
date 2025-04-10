@@ -50,6 +50,20 @@
       "when": 1744317111025,
       "tag": "0006_white_stone_men",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1744317817769,
+      "tag": "0007_parched_red_ghost",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1744319374799,
+      "tag": "0008_spotty_puck",
+      "breakpoints": true
     }
   ]
 }

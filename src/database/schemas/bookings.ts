@@ -33,7 +33,6 @@ export const Bookings = pgTable('bookings', {
   paymentMethod: text('paymentMethod'),
   idTransaccion: text('idTransaccion'),
   urlCompletarPago3Ds: text('urlCompletarPago3Ds'),
-
   created_at: timestamp().notNull().defaultNow(),
   updated_at: timestamp().notNull().defaultNow(),
 })
