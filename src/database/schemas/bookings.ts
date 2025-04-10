@@ -22,7 +22,7 @@ export const Bookings = pgTable('bookings', {
   is_live: boolean('is_live'),
   tickets: integer('tickets').default(1),
   total: decimal({ precision: 10, scale: 2 }).notNull(),
-
+  selected_dates: timestamp('selected_dates', { withTimezone: true }).array(),
   first_name: text('first_name'),
   last_name: text('last_name'),
   email: text('email'),
