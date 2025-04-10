@@ -21,6 +21,8 @@ export const getRatingsService = async (productId: string) => {
         review: Ratings.review,
         username: Users.username,
         email: Users.email,
+        created_at: Ratings.created_at,
+        updated_at: Ratings.updated_at,
       })
       .from(Ratings)
       .innerJoin(Users, eq(Users.id, Ratings.user_id))
