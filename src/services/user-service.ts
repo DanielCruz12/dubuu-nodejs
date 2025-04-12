@@ -2,12 +2,18 @@ import { eq, ilike } from 'drizzle-orm'
 import { db } from '../database/db'
 import { Users } from '../database/schemas'
 import { statusCodes } from '../utils'
+import { decrypt, encrypt } from '../utils/crypto'
 
 // 🔍 Obtener todos los usuarios
 export const getUsersService = async () => {
   try {
     const users = await db.select().from(Users)
-    return users
+    const decryptedUsers = users.map((user: any) => ({
+      ...user,
+      email: decrypt(user.email),
+      phone_number: user.phone_number ? decrypt(user.phone_number) : '',
+    }))
+    return decryptedUsers
   } catch (error) {
     console.error('500:', statusCodes[500], '-', error)
     throw new Error('Error al obtener usuarios.')
@@ -35,11 +41,13 @@ export const createUserService = async (userData: any) => {
       throw new Error('Ya existe un usuario con este correo electrónico.')
     }
 
+    const encryptedEmail = encrypt(email)
+
     const [newUser] = await db
       .insert(Users)
       .values({
         id,
-        email,
+        email: encryptedEmail,
         username,
         first_name: first_name?.trim() || '',
         last_name: last_name?.trim() || '',
@@ -68,7 +76,15 @@ export const getUserByIdService = async (userId: string) => {
       .limit(1)
       .execute()
 
-    return user[0] || null
+    if (user.length === 0) return null
+
+    const decryptedUser = {
+      ...user[0],
+      email: decrypt(user[0].email),
+      phone_number: user[0].phone_number ? decrypt(user[0].phone_number) : null,
+    }
+
+    return decryptedUser
   } catch (error) {
     console.error('500:', statusCodes[500], '-', error)
     throw new Error('Error al obtener el usuario.')
@@ -83,9 +99,15 @@ export const updateUserService = async (userId: string, userData: any) => {
   }
 
   try {
+    const updatedData = {
+      ...userData,
+      email: userData.email ? encrypt(userData.email) : '',
+      phone_number: userData.phone_number ? encrypt(userData.phone_number) : '',
+    }
+
     const [updatedUser] = await db
       .update(Users)
-      .set(userData)
+      .set(updatedData)
       .where(eq(Users.id, userId))
       .returning()
 

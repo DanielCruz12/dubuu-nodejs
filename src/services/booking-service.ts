@@ -1,6 +1,5 @@
 import { eq } from 'drizzle-orm'
 import { db } from '../database/db'
-import { Users } from '../database/schemas'
 import { Bookings } from '../database/schemas/bookings'
 import { statusCodes } from '../utils'
 
@@ -51,6 +50,10 @@ export const getBookingsForUserService = async (userId: string) => {
       .where(eq(Bookings.user_id, userId))
       .execute()
 
+    if (!bookings || bookings.length === 0) {
+      console.log('El usuario no tiene reservas.')
+    }
+
     return bookings
   } catch (error) {
     console.error('500:', statusCodes[500], '-', error)
@@ -80,18 +83,12 @@ export const getBookingsByProductIdService = async (productId: string) => {
 
 // ➕ Crear nueva reserva
 export const createBookingService = async (bookingData: any) => {
-  console.log(bookingData)
   const requiredFields = [
     'user_id',
     'product_id',
-    'first_name',
-    'last_name',
-    'email',
-    'phone',
+    'selected_dates',
     'paymentMethod',
-    'country',
     'idTransaccion',
-    'urlCompletarPago3Ds',
   ]
 
   const missingFields = requiredFields.filter((field) => !bookingData[field])
@@ -107,9 +104,15 @@ export const createBookingService = async (bookingData: any) => {
   }
 
   try {
+    const parsedDates = bookingData.selected_dates.map((d: string | Date) => new Date(d))
+
+
     const [newBooking] = await db
-      .insert(Bookings)
-      .values(bookingData)
+    .insert(Bookings)
+    .values({
+      ...bookingData,
+      selected_dates: parsedDates,
+    })
       .returning()
 
     return newBooking
@@ -174,7 +177,6 @@ export const updateBookingStatusByTransactionId = async (
     throw new Error('Error al actualizar el estado del booking.')
   }
 }
-
 
 // ❌ Eliminar una reserva
 export const deleteBookingService = async (bookingId: string) => {

@@ -8,6 +8,7 @@ import {
   deleteBookingService,
 } from '../services/booking-service'
 import { statusCodes } from '../utils'
+import { getBookingsByProductIdService } from "../services/booking-service";
 
 export const getBookings = async (req: Request, res: Response) => {
   try {
@@ -32,7 +33,6 @@ export const getBookingById = async (req: Request, res: Response) => {
   }
 }
 
-import { getBookingsByProductIdService } from "../services/booking-service";
 
 export const getBookingsByProductId = async (req: Request, res: Response) => {
   try {
