@@ -50,7 +50,18 @@ export const createUser = async (req: Request) => {
 
 export const updateUser = async (req: Request, res: Response) => {
   const { id } = req.params
-  const { email, username, first_name, last_name, phone_number } = req.body
+  const {
+    email,
+    username,
+    first_name,
+    last_name,
+    phone_number,
+    address,
+    city,
+    id_region,
+    zip_code,
+    country,
+  } = req.body
 
   if (!email || !username || !first_name || !last_name || !phone_number) {
     return res.status(400).json({
@@ -64,6 +75,11 @@ export const updateUser = async (req: Request, res: Response) => {
       phone_number,
       first_name,
       last_name,
+      address,
+      city,
+      id_region,
+      zip_code,
+      country,
     })
     return res.status(200).json(updatedUser)
   } catch (error) {
