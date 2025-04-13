@@ -1,7 +1,6 @@
 // controllers/payment-controller.ts
 import { Request, Response } from 'express'
 import { createTransaction3DS } from '../services/payment-3ds-service'
-import { createBookingService } from '../services/booking-service'
 
 const API_URL = process.env.API_URL
 
@@ -14,7 +13,6 @@ export const handleCreate3DSTransaction = async (
       firstName,
       lastName,
       email,
-      phone,
       address,
       city,
       state,
@@ -24,10 +22,6 @@ export const handleCreate3DSTransaction = async (
       cardExpiry,
       cardCvc,
       total,
-      user_id,
-      product_id,
-      tickets,
-      paymentMethod,
     } = req.body
 
     if (
@@ -54,7 +48,7 @@ export const handleCreate3DSTransaction = async (
       },
       monto: total,
       configuracion: {
-        emailsNotificacion: 'dubondanielcruz@gmail.com',
+        emailsNotificacion: email,
         urlWebhook: `${API_URL}/webhook-wompi`,
         telefonosNotificacion: '77886116',
         notificarTransaccionCliente: true,

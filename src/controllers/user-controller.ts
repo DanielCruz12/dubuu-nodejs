@@ -50,15 +50,35 @@ export const createUser = async (req: Request) => {
 
 export const updateUser = async (req: Request) => {
   const { id } = req.params
-  const { email, username, first_name, last_name } = req.body
+  const {
+    email,
+    username,
+    first_name,
+    last_name,
+    address,
+    city,
+    country,
+    id_region,
+    phone_number,
+    zip_code,
+  } = req.body
   try {
     const updatedUser = await updateUserService(id, {
       email,
       username,
       first_name,
       last_name,
+      address,
+      city,
+      country,
+      id_region,
+      phone_number,
+      zip_code,
     })
-    return { status: 200, data: { message: 'User updated successfully', updatedUser } }
+    return {
+      status: 200,
+      data: { message: 'User updated successfully', updatedUser },
+    }
   } catch (error) {
     console.error(error)
     return { status: 500, data: { message: 'Internal Server Error' } }
@@ -69,7 +89,10 @@ export const deleteUser = async (req: Request) => {
   const { id } = req.params
   try {
     const deletedUser = await deleteUserService(id)
-    return { status: 200, data: { message: 'User deleted successfully', deletedUser } }
+    return {
+      status: 200,
+      data: { message: 'User deleted successfully', deletedUser },
+    }
   } catch (error) {
     console.error(error)
     return { status: 500, data: { message: 'Internal Server Error' } }
