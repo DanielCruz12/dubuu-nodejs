@@ -3,16 +3,16 @@ import {
   getUsers,
   getUserById,
   createUser,
-  updateUser,
   deleteUser,
+  updateUser,
 } from '../../controllers/user-controller'
 
 const router = express.Router()
 
-router.get('/', getUsers) //* Route to get all users
-router.get('/:id', getUserById) //* Route to get a user by id
-router.post('/', createUser) //* Route to create a new user
-router.put('/:id', updateUser) //* Route to update a user
-router.delete('/:id', deleteUser) //* Route to delete a user
+router.get('/', getUsers)           // Obtener todos los usuarios
+router.get('/:id', getUserById)     // Obtener un usuario por ID
+router.post('/', createUser)        // Crear un nuevo usuario
+router.put('/:id', updateUser)      // Actualizar usuario existente
+router.delete('/:id', deleteUser)   // Eliminar usuario
 
 export { router as userRoutes }
