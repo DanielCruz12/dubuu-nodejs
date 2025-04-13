@@ -72,10 +72,6 @@ export const getUserByIdService = async (userId: string) => {
 export const createUserService = async (userData: CreateUserInput) => {
   const { id, email, username, first_name = '', last_name = '' } = userData
 
-  if (!id || !email || !username) {
-    throw new Error('Faltan campos obligatorios: id, email o username.')
-  }
-
   try {
     const existing = await db
       .select()
