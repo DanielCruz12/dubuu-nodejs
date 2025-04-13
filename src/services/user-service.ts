@@ -72,6 +72,8 @@ export const getUserByIdService = async (userId: string) => {
 export const createUserService = async (userData: CreateUserInput) => {
   const { id, email, username, first_name = '', last_name = '' } = userData
 
+  console.log(userData)
+
   try {
     const existing = await db
       .select()
