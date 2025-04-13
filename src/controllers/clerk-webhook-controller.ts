@@ -75,7 +75,7 @@ export const handleWebHook = async (req: Request, res: Response) => {
             last_name,
             username,
           },
-        } as any)
+        } as any, res)
         break
 
         case 'user.deleted':

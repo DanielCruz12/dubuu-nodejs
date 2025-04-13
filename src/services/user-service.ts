@@ -76,8 +76,6 @@ export const getUserByIdService = async (userId: string) => {
       .limit(1)
       .execute()
 
-    if (user.length === 0) return null
-
     const decryptedUser = {
       ...user[0],
       email: decrypt(user[0].email),
@@ -98,10 +96,12 @@ export const updateUserService = async (userId: string, userData: any) => {
     throw new Error('El ID del usuario es obligatorio para actualizar.')
   }
 
+  const encryptedEmail = encrypt(userData.email)
+
   try {
     const updatedData = {
       ...userData,
-      email: userData.email ? encrypt(userData.email) : '',
+      email: encryptedEmail,
       phone_number: userData.phone_number ? encrypt(userData.phone_number) : '',
     }
 
