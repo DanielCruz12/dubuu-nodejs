@@ -45,6 +45,11 @@ export const handleWebHook = async (req: Request, res: Response) => {
     })
   }
 
+  if (!evt.data) {
+    console.error('No event data received')
+    return res.status(400).json({ message: 'Missing event data' })
+  }
+
   const { email_addresses, first_name, last_name, id, username } = evt.data
   const eventType = evt.type
 
@@ -106,19 +111,18 @@ export const handleWebHook = async (req: Request, res: Response) => {
 
     // Return response
     if (!res.headersSent) {
-      return res
-        .status(typeof result?.status === 'number' ? result?.status : 200)
-        .json(
-          result || {
-            success: true,
-            message: 'Webhook processed successfully',
-          },
-        )
+      return res.status(200).json(
+        result || {
+          success: true,
+          message: 'Webhook processed successfully',
+        },
+      )
     }
-  } catch (error) {
-    console.error('Error handling event:', error)
-    if (!res.headersSent) {
-      res.status(500).json({ message: 'Error handling webhook event' })
-    }
+  } catch (err: any) {
+    console.error('Error verifying webhook:', err)
+    return res.status(400).json({
+      success: false,
+      message: `Error verifying webhook: ${err.message}`,
+    })
   }
 }
