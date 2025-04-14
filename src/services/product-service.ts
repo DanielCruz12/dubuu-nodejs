@@ -100,7 +100,7 @@ export const getProductsService = async (req: Request) => {
 
   return {
     data: products.map((p) => ({
-      ...p.product, 
+      ...p.product,
     })),
     pagination: {
       total,
@@ -138,7 +138,7 @@ export const getProductByIdService = async (productId: string) => {
         amenities: sql`
         COALESCE(
           json_agg(
-            json_build_object(
+            DISTINCT jsonb_build_object(
               'id', ${ProductAmenities.id},
               'name', ${ProductAmenities.name}
             )
