@@ -9,19 +9,19 @@ import {
 } from 'drizzle-orm/pg-core'
 import { Users } from './users'
 import { Products } from './products'
+import { TourDates } from './tours'
 
 export const Bookings = pgTable('bookings', {
   id: uuid().primaryKey().defaultRandom().notNull(),
   user_id: text().references(() => Users.id),
   product_id: uuid().references(() => Products.id),
-
   status: text({ enum: ['completed', 'in-process', 'canceled'] }).default(
     'in-process',
   ),
   is_live: boolean('is_live'),
   tickets: integer('tickets').default(1),
   total: decimal({ precision: 10, scale: 2 }).notNull(),
-  selected_dates: timestamp('selected_dates', { withTimezone: true }).array(),
+  tour_date_id: uuid().references(() => TourDates.id),
   paymentMethod: text('paymentMethod'),
   idTransaccion: text('idTransaccion'),
   created_at: timestamp().notNull().defaultNow(),

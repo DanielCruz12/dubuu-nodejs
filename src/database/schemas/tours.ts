@@ -6,13 +6,22 @@ export const Tours = pgTable('tours', {
     .primaryKey()
     .references(() => Products.id)
     .notNull(),
-  departure_point: text().notNull().default(''),
-  available_dates: timestamp('available_dates', { withTimezone: true })
-    .array()
-    .notNull(),
-  max_people: integer().notNull(),
+  departure_point: text('departure_point').notNull().default(''),
+
+  lat: text('lat').notNull().default(''),
+  long: text('long').notNull().default(''),
   itinerary: text('itinerary').array().default(['']),
   highlight: text().notNull().default(''),
   included: text().notNull().default(''),
   duration: integer().notNull(),
+})
+
+export const TourDates = pgTable('tour_dates', {
+  id: uuid().primaryKey().defaultRandom(),
+  tour_id: uuid()
+    .references(() => Tours.product_id)
+    .notNull(),
+  date: timestamp('date', { withTimezone: true }).notNull(),
+  max_people: integer('max_people').notNull(),
+  people_booked: integer('people_booked').notNull().default(0),
 })

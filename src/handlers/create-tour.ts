@@ -1,5 +1,5 @@
 import { db } from '../database/db'
-import { ProductAmenitiesProducts, Tours } from '../database/schemas'
+import { ProductAmenitiesProducts, TourDates, Tours } from '../database/schemas'
 
 export const createTourHandler = async (data: any, productId: string) => {
   const {
@@ -11,6 +11,8 @@ export const createTourHandler = async (data: any, productId: string) => {
     included,
     duration,
     amenities = [],
+    lat,
+    long,
   } = data
 
   // ✅ Validaciones
@@ -40,13 +42,21 @@ export const createTourHandler = async (data: any, productId: string) => {
   await db.insert(Tours).values({
     product_id: productId,
     departure_point,
-    available_dates: parsedDates,
-    max_people,
     itinerary,
     highlight,
     included,
     duration,
+    lat,
+    long,
   })
+
+  const tourDateRows = parsedDates.map((date) => ({
+    tour_id: productId,
+    date,
+    max_people,
+    people_booked: 0,
+  }))
+  await db.insert(TourDates).values(tourDateRows).execute()
 
   // ✅ Insertar amenities relacionados
   if (!Array.isArray(amenities) || amenities.length === 0) {

@@ -1,6 +1,6 @@
 import { db } from '../database/db'
 import { Request } from 'express'
-import { Products, Ratings, Tours, Users } from '../database/schemas'
+import { Products, Ratings, TourDates, Tours, Users } from '../database/schemas'
 import {
   ProductAmenities,
   ProductAmenitiesProducts,
@@ -66,7 +66,6 @@ export const getProductsService = async (req: Request) => {
           name: ProductTypes.name,
         },
         tour: {
-          max_people: Tours.max_people,
           duration: Tours.duration,
         },
         average_rating: Products.average_rating,
@@ -148,8 +147,19 @@ export const getProductByIdService = async (productId: string) => {
       `.as('amenities'),
         tour: {
           departure_point: Tours.departure_point,
-          available_dates: Tours.available_dates,
-          max_people: Tours.max_people,
+          tour_dates: sql`
+          COALESCE(
+            json_agg(
+              DISTINCT jsonb_build_object(
+                'id', ${TourDates.id},
+                'date', ${TourDates.date},
+                'max_people', ${TourDates.max_people},
+                'people_booked', ${TourDates.people_booked}
+              )
+            ) FILTER (WHERE ${TourDates.id} IS NOT NULL),
+            '[]'
+          )
+        `.as('tour_dates'),
           itinerary: Tours.itinerary,
           highlight: Tours.highlight,
           included: Tours.included,
@@ -171,6 +181,7 @@ export const getProductByIdService = async (productId: string) => {
     )
     .innerJoin(ProductTypes, eq(Products.product_type_id, ProductTypes.id))
     .leftJoin(Tours, eq(Products.id, Tours.product_id))
+    .leftJoin(TourDates, eq(Tours.product_id, TourDates.tour_id))
     .leftJoin(
       ProductAmenitiesProducts,
       eq(Products.id, ProductAmenitiesProducts.productId),
@@ -179,6 +190,7 @@ export const getProductByIdService = async (productId: string) => {
       ProductAmenities,
       eq(ProductAmenitiesProducts.productAmenityId, ProductAmenities.id),
     )
+    
     .groupBy(
       Users.id,
       Products.id,

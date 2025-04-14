@@ -53,7 +53,7 @@ export const handleCreate3DSTransaction = async (
         telefonosNotificacion: '77886116',
         notificarTransaccionCliente: true,
       },
-      urlRedirect: 'https://dantour.vercel.app/',
+      urlRedirect: 'https://dantour.vercel.app/account',
       nombre: firstName,
       apellido: lastName,
       email,

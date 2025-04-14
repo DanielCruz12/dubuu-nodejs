@@ -51,7 +51,6 @@ export const getProductCategoryByIdService = async (id: string) => {
 
 // ✅ Crear una nueva categoría con validación
 export const createProductCategoryService = async (data: any) => {
-  console.log(data)
   const name = data?.name?.trim()
   const description = data?.description?.trim()
   const product_type_id = data?.product_type_id

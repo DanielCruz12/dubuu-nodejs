@@ -86,7 +86,6 @@ export const createBookingService = async (bookingData: any) => {
   const requiredFields = [
     'user_id',
     'product_id',
-    'selected_dates',
     'paymentMethod',
     'idTransaccion',
   ]

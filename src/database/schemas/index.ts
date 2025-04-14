@@ -3,7 +3,7 @@ export { Comments } from './comments'
 export { Products } from './products'
 export { Ratings } from './ratings'
 export { Bookings } from './bookings'
-export { Tours } from './tours'
+export { Tours, TourDates } from './tours'
 export { Roles, Users } from './users'
 export {
   ProductTypes,
