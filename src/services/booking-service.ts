@@ -2,6 +2,9 @@ import { eq } from 'drizzle-orm'
 import { db } from '../database/db'
 import { Bookings } from '../database/schemas/bookings'
 import { statusCodes } from '../utils'
+import { Products, TourDates, Users } from '../database/schemas'
+import moment from 'moment'
+import "moment/locale/es";
 
 // 🔍 Obtener todas las reservas
 export const getBookingsService = async () => {
@@ -14,25 +17,43 @@ export const getBookingsService = async () => {
   }
 }
 
-// 🔍 Obtener reserva por ID
 export const getBookingByIdService = async (bookingId: string) => {
   if (!bookingId) {
-    console.error('400:', statusCodes[400])
+    console.error('400:', 'El ID de la reserva es obligatorio.')
     throw new Error('El ID de la reserva es obligatorio.')
   }
 
   try {
-    const [booking] = await db
-      .select()
+    const [bookingData] = await db
+      .select({
+        bookingId: Bookings.id,
+        tickets: Bookings.tickets,
+        total: Bookings.total,
+        productId: Bookings.product_id,
+        userFirstName: Users.first_name,
+        userLastName: Users.last_name,
+        productName: Products.name,
+        tourDate: TourDates.date,
+      })
       .from(Bookings)
+      .leftJoin(Users, eq(Bookings.user_id, Users.id))
+      .leftJoin(Products, eq(Bookings.product_id, Products.id))
+      .leftJoin(TourDates, eq(Bookings.tour_date_id, TourDates.id))
       .where(eq(Bookings.id, bookingId))
       .limit(1)
-      .execute()
 
-    return booking || null
+    if (!bookingData) return null
+
+    return {
+      nombre: `${bookingData.userFirstName} ${bookingData.userLastName}`,
+      producto: bookingData.productName,
+      tickets: bookingData.tickets,
+      total: bookingData.total,
+      fechaSeleccionada: moment(bookingData.tourDate).format('LLLL'),
+    }
   } catch (error) {
-    console.error('500:', statusCodes[500], '-', error)
-    throw new Error('Error al obtener la reserva.')
+    console.error('500:', 'Error al obtener la reserva extendida:', error)
+    throw new Error('Error al obtener la reserva extendida.')
   }
 }
 
@@ -103,15 +124,11 @@ export const createBookingService = async (bookingData: any) => {
   }
 
   try {
-    const parsedDates = bookingData.selected_dates.map((d: string | Date) => new Date(d))
-
-
     const [newBooking] = await db
-    .insert(Bookings)
-    .values({
-      ...bookingData,
-      selected_dates: parsedDates,
-    })
+      .insert(Bookings)
+      .values({
+        ...bookingData,
+      })
       .returning()
 
     return newBooking
