@@ -1,8 +1,7 @@
 import { db } from '../database/db'
 import { Request } from 'express'
-import { Products, Ratings, TourDates, Tours, Users } from '../database/schemas'
+import { Products, Ratings, TourDates, Tours } from '../database/schemas'
 import {
-  ProductAmenities,
   ProductAmenitiesProducts,
   ProductCategories,
   ProductTypes,
@@ -10,6 +9,9 @@ import {
 } from '../database/schemas/product-catalogs'
 import { eq, sql, and, ilike, gte, lte, desc } from 'drizzle-orm'
 import { createTourHandler } from '../handlers/create-tour'
+import { getBaseProductInfo } from '../handlers/generic-get-product'
+import { getTourById } from '../handlers/get-tour'
+import { getRentalById } from '../handlers/get-rental'
 
 export const getProductsService = async (req: Request) => {
   const page = parseInt(req.query.page as string) || 1
@@ -65,9 +67,6 @@ export const getProductsService = async (req: Request) => {
           id: ProductTypes.id,
           name: ProductTypes.name,
         },
-        tour: {
-          duration: Tours.duration,
-        },
         average_rating: Products.average_rating,
         total_reviews: Products.total_reviews,
       },
@@ -83,13 +82,11 @@ export const getProductsService = async (req: Request) => {
       eq(Products.target_product_audience_id, TargetProductAudiences.id),
     )
     .innerJoin(ProductTypes, eq(Products.product_type_id, ProductTypes.id))
-    .leftJoin(Tours, eq(Products.id, Tours.product_id))
     .groupBy(
       Products.id,
       ProductCategories.id,
       TargetProductAudiences.id,
       ProductTypes.id,
-      Tours.product_id,
     )
     .orderBy(desc(Products.created_at))
     .limit(limit)
@@ -111,164 +108,45 @@ export const getProductsService = async (req: Request) => {
 }
 
 export const getProductByIdService = async (productId: string) => {
-  const product = await db
-    .select({
-      product: {
-        ...Products,
-        product_category: {
-          id: ProductCategories.id,
-          name: ProductCategories.name,
-        },
-        target_audience: {
-          id: TargetProductAudiences.id,
-          name: TargetProductAudiences.name,
-        },
-        product_type: {
-          id: ProductTypes.id,
-          name: ProductTypes.name,
-        },
-        user: {
-          id: Users.id,
-          username: Users.username,
-          email: Users.email,
-        },
-        average_rating: Products.average_rating,
-        total_reviews: Products.total_reviews,
-        amenities: sql`
-        COALESCE(
-          json_agg(
-            DISTINCT jsonb_build_object(
-              'id', ${ProductAmenities.id},
-              'name', ${ProductAmenities.name}
-            )
-          ) FILTER (WHERE ${ProductAmenities.id} IS NOT NULL),
-          '[]'
-        )
-      `.as('amenities'),
-        tour: {
-          departure_point: Tours.departure_point,
-          tour_dates: sql`
-          COALESCE(
-            json_agg(
-              DISTINCT jsonb_build_object(
-                'id', ${TourDates.id},
-                'date', ${TourDates.date},
-                'max_people', ${TourDates.max_people},
-                'people_booked', ${TourDates.people_booked}
-              )
-            ) FILTER (WHERE ${TourDates.id} IS NOT NULL),
-            '[]'
-          )
-        `.as('tour_dates'),
-          itinerary: Tours.itinerary,
-          highlight: Tours.highlight,
-          included: Tours.included,
-          duration: Tours.duration,
-        },
-      },
-    })
-    .from(Products)
-    .where(and(eq(Products.id, productId), eq(Products.is_approved, true)))
-    .innerJoin(Users, eq(Products.user_id, Users.id))
-    .leftJoin(Ratings, eq(Products.id, Ratings.product_id))
-    .innerJoin(
-      ProductCategories,
-      eq(Products.product_category_id, ProductCategories.id),
-    )
-    .innerJoin(
-      TargetProductAudiences,
-      eq(Products.target_product_audience_id, TargetProductAudiences.id),
-    )
-    .innerJoin(ProductTypes, eq(Products.product_type_id, ProductTypes.id))
-    .leftJoin(Tours, eq(Products.id, Tours.product_id))
-    .leftJoin(TourDates, eq(Tours.product_id, TourDates.tour_id))
-    .leftJoin(
-      ProductAmenitiesProducts,
-      eq(Products.id, ProductAmenitiesProducts.productId),
-    )
-    .leftJoin(
-      ProductAmenities,
-      eq(ProductAmenitiesProducts.productAmenityId, ProductAmenities.id),
-    )
+  const baseProduct = await getBaseProductInfo(productId)
+  if (!baseProduct) return null
 
-    .groupBy(
-      Users.id,
-      Products.id,
-      ProductTypes.id,
-      Tours.product_id,
-      ProductCategories.id,
-      TargetProductAudiences.id,
-    )
-    .limit(1)
+  const category = baseProduct.product_type.name
 
-  return product[0]?.product || null
+  switch (category) {
+    case 'tours':
+      return await getTourById(productId, baseProduct)
+    case 'rental':
+      return await getRentalById(productId, baseProduct)
+  }
 }
 
 export const getProductsByUserIdService = async (userId: string) => {
-  const products = await db
-    .select({
-      product: {
-        ...Products,
-        product_category: {
-          id: ProductCategories.id,
-          name: ProductCategories.name,
-        },
-        target_audience: {
-          id: TargetProductAudiences.id,
-          name: TargetProductAudiences.name,
-        },
-        product_type: {
-          id: ProductTypes.id,
-          name: ProductTypes.name,
-        },
-        tour: {
-          departure_point: Tours.departure_point,
-          tour_dates: sql`
-          COALESCE(
-            json_agg(
-              DISTINCT jsonb_build_object(
-                'id', ${TourDates.id},
-                'date', ${TourDates.date},
-                'max_people', ${TourDates.max_people},
-                'people_booked', ${TourDates.people_booked}
-              )
-            ) FILTER (WHERE ${TourDates.id} IS NOT NULL),
-            '[]'
-          )
-        `.as('tour_dates'),
-          itinerary: Tours.itinerary,
-          highlight: Tours.highlight,
-          included: Tours.included,
-          duration: Tours.duration,
-        },
-      },
-    })
+  // Paso 1: obtenemos solo los IDs de productos del usuario
+  const productIds = await db
+    .select({ id: Products.id })
     .from(Products)
-    .innerJoin(
-      ProductCategories,
-      eq(Products.product_category_id, ProductCategories.id),
-    )
-    .innerJoin(
-      TargetProductAudiences,
-      eq(Products.target_product_audience_id, TargetProductAudiences.id),
-    )
-    .innerJoin(ProductTypes, eq(Products.product_type_id, ProductTypes.id))
-    .leftJoin(Tours, eq(Products.id, Tours.product_id))
-    .leftJoin(TourDates, eq(Tours.product_id, TourDates.tour_id))
     .where(eq(Products.user_id, userId))
 
-    .orderBy(desc(Products.created_at))
-    .groupBy(
-      Products.id,
-      ProductTypes.id,
-      Tours.product_id,
-      ProductCategories.id,
-      TargetProductAudiences.id,
-    )
+  // Paso 2: usamos getBaseProductInfo y la lógica por categoría
+  const enrichedProducts = await Promise.all(
+    productIds.map(async ({ id }) => {
+      const baseProduct = await getBaseProductInfo(id)
+      if (!baseProduct) return null
 
-  return products.map((p) => ({
-    ...p.product,
-  }))
+      const category = baseProduct.product_type.name
+
+      switch (category) {
+        case 'tours':
+          return await getTourById(id, baseProduct)
+        case 'rental':
+          return await getRentalById(id, baseProduct)
+      }
+    }),
+  )
+
+  // Filtramos nulos por si algún producto fue eliminado o no está aprobado
+  return enrichedProducts.filter(Boolean)
 }
 
 export const createProductService = async (productData: any) => {
