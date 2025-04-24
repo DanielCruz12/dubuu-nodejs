@@ -1,6 +1,7 @@
 import { Request, Response } from 'express'
 import { Webhook } from 'svix'
 import { createUser, deleteUser, updateUser } from './user-controller'
+import { clerkClient } from '@clerk/express'
 
 export const handleWebHook = async (req: Request, res: Response) => {
   //* Retrieve the webhook secret from environment variables
@@ -64,26 +65,40 @@ export const handleWebHook = async (req: Request, res: Response) => {
             username,
           },
         } as Request)
+        const user = await clerkClient.users.getUser(id)
+        console.log('User Metadata:', user.publicMetadata)
+        const response = await clerkClient.users.updateUserMetadata(
+          user as any,
+          {
+            publicMetadata: {
+              roles: ['user'],
+            },
+          },
+        )
+        console.log('Updated User:', response)
+
         break
 
       case 'user.updated':
-        result = await updateUser({
-          params: { id },
-          body: {
-            email: email_addresses[0].email_address,
-            first_name,
-            last_name,
-            username,
-          },
-        } as any, res)
+        result = await updateUser(
+          {
+            params: { id },
+            body: {
+              email: email_addresses[0].email_address,
+              first_name,
+              last_name,
+              username,
+            },
+          } as any,
+          res,
+        )
         break
 
-        case 'user.deleted':
-          result = await deleteUser({
-            params: { id },
-          } as any)
-          break
-        
+      case 'user.deleted':
+        result = await deleteUser({
+          params: { id },
+        } as any)
+        break
 
       // Session related events
       case 'session.ended':
@@ -103,14 +118,12 @@ export const handleWebHook = async (req: Request, res: Response) => {
         console.log(`Unhandled event type: ${eventType}`)
     }
     if (!res.headersSent) {
-      res
-        .status(200)
-        .json(
-          result || {
-            success: true,
-            message: 'Webhook processed successfully',
-          },
-        )
+      res.status(200).json(
+        result || {
+          success: true,
+          message: 'Webhook processed successfully',
+        },
+      )
     }
   } catch (error) {
     console.error('Error handling event:', error)

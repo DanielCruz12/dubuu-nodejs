@@ -9,12 +9,13 @@ import { bookingsRoutes } from './booking-routes'
 import { commentsRoutes } from './comment-routes'
 import { faqsRoutes } from './faq-routes'
 import { productAmenitiesRoutes } from './product-amenities-routes'
-import { ProductTypes } from '../../database/schemas'
 import { productTypesRoutes } from './product-types-routes'
+import { requireAuth } from '@clerk/express'
+import { requireRole } from '../../middlewares/role-validator'
 
 const router = express.Router()
 
-router.use('/users', userRoutes)
+router.use('/users', requireAuth(), requireRole(['host']), userRoutes)
 router.use('/products', productRoutes)
 router.use('/product-amenities', productAmenitiesRoutes)
 router.use('/product-types', productTypesRoutes)

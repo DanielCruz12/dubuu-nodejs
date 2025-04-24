@@ -190,7 +190,7 @@ export const getProductByIdService = async (productId: string) => {
       ProductAmenities,
       eq(ProductAmenitiesProducts.productAmenityId, ProductAmenities.id),
     )
-    
+
     .groupBy(
       Users.id,
       Products.id,
@@ -202,6 +202,73 @@ export const getProductByIdService = async (productId: string) => {
     .limit(1)
 
   return product[0]?.product || null
+}
+
+export const getProductsByUserIdService = async (userId: string) => {
+  const products = await db
+    .select({
+      product: {
+        ...Products,
+        product_category: {
+          id: ProductCategories.id,
+          name: ProductCategories.name,
+        },
+        target_audience: {
+          id: TargetProductAudiences.id,
+          name: TargetProductAudiences.name,
+        },
+        product_type: {
+          id: ProductTypes.id,
+          name: ProductTypes.name,
+        },
+        tour: {
+          departure_point: Tours.departure_point,
+          tour_dates: sql`
+          COALESCE(
+            json_agg(
+              DISTINCT jsonb_build_object(
+                'id', ${TourDates.id},
+                'date', ${TourDates.date},
+                'max_people', ${TourDates.max_people},
+                'people_booked', ${TourDates.people_booked}
+              )
+            ) FILTER (WHERE ${TourDates.id} IS NOT NULL),
+            '[]'
+          )
+        `.as('tour_dates'),
+          itinerary: Tours.itinerary,
+          highlight: Tours.highlight,
+          included: Tours.included,
+          duration: Tours.duration,
+        },
+      },
+    })
+    .from(Products)
+    .innerJoin(
+      ProductCategories,
+      eq(Products.product_category_id, ProductCategories.id),
+    )
+    .innerJoin(
+      TargetProductAudiences,
+      eq(Products.target_product_audience_id, TargetProductAudiences.id),
+    )
+    .innerJoin(ProductTypes, eq(Products.product_type_id, ProductTypes.id))
+    .leftJoin(Tours, eq(Products.id, Tours.product_id))
+    .leftJoin(TourDates, eq(Tours.product_id, TourDates.tour_id))
+    .where(eq(Products.user_id, userId))
+
+    .orderBy(desc(Products.created_at))
+    .groupBy(
+      Products.id,
+      ProductTypes.id,
+      Tours.product_id,
+      ProductCategories.id,
+      TargetProductAudiences.id,
+    )
+
+  return products.map((p) => ({
+    ...p.product,
+  }))
 }
 
 export const createProductService = async (productData: any) => {

@@ -12,6 +12,8 @@ dotenv.config()
 const app = express()
 
 app.use(cors())
+
+
 app.post(
   '/api/webhooks',
   bodyParser.raw({ type: 'application/json' }),
@@ -31,10 +33,12 @@ app.post('/webhook-wompi', handleWompiWebhook)
 setupSwagger(app)
 app.use(express.json())
 
+
 app.use('/api/v1', wompiRouter)
 
 //* Define routes
 app.use('/api/v1', apiRoutes)
+
 
 //* Fallback route for undefined endpoints
 app.use('/api/v1', (req, res) => {
