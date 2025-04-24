@@ -65,15 +65,12 @@ export const handleWebHook = async (req: Request, res: Response) => {
             username,
           },
         } as Request)
-        console.log("user a actualizar:",id) // should be `user_<some-id>`
 
-        const response = await clerkClient.users.updateUserMetadata(id, {
+        await clerkClient.users.updateUserMetadata(id, {
           publicMetadata: {
             roles: ['user'],
           },
         })
-
-        console.log('Updated User:', response)
 
         break
 
