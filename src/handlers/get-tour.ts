@@ -23,6 +23,8 @@ export const getTourById = async (
           )
         `.as('tour_dates'),
       itinerary: Tours.itinerary,
+      lat: Tours.lat,
+      long: Tours.long,
       highlight: Tours.highlight,
       included: Tours.included,
       duration: Tours.duration,
