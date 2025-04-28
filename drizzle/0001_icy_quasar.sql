@@ -1,2 +1,0 @@
-ALTER TABLE "product_categories" ADD COLUMN "product_type_id" uuid NOT NULL;--> statement-breakpoint
-ALTER TABLE "product_categories" ADD CONSTRAINT "product_categories_product_type_id_product_types_id_fk" FOREIGN KEY ("product_type_id") REFERENCES "public"."product_types"("id") ON DELETE no action ON UPDATE no action;

@@ -5,85 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1743717634760,
-      "tag": "0000_useful_cassandra_nova",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1743723165661,
-      "tag": "0001_icy_quasar",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1743746159146,
-      "tag": "0002_soft_mentallo",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1744042775700,
-      "tag": "0003_overjoyed_the_order",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1744043526713,
-      "tag": "0004_handy_vulture",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "7",
-      "when": 1744051663115,
-      "tag": "0005_mixed_jetstream",
-      "breakpoints": true
-    },
-    {
-      "idx": 6,
-      "version": "7",
-      "when": 1744317111025,
-      "tag": "0006_white_stone_men",
-      "breakpoints": true
-    },
-    {
-      "idx": 7,
-      "version": "7",
-      "when": 1744317817769,
-      "tag": "0007_parched_red_ghost",
-      "breakpoints": true
-    },
-    {
-      "idx": 8,
-      "version": "7",
-      "when": 1744319374799,
-      "tag": "0008_spotty_puck",
-      "breakpoints": true
-    },
-    {
-      "idx": 9,
-      "version": "7",
-      "when": 1744495266747,
-      "tag": "0009_blushing_glorian",
-      "breakpoints": true
-    },
-    {
-      "idx": 10,
-      "version": "7",
-      "when": 1744495606563,
-      "tag": "0010_pretty_ben_urich",
-      "breakpoints": true
-    },
-    {
-      "idx": 11,
-      "version": "7",
-      "when": 1744664474726,
-      "tag": "0011_grey_landau",
+      "when": 1745868800466,
+      "tag": "0000_salty_shadowcat",
       "breakpoints": true
     }
   ]
