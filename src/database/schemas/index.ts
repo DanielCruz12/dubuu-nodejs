@@ -5,6 +5,7 @@ export { Ratings } from './ratings'
 export { Bookings } from './bookings'
 export { Tours, TourDates } from './tours'
 export { Roles, Users } from './users'
+export { PaymentAccounts} from './payments'
 export {
   ProductTypes,
   ProductAmenities,
