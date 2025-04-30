@@ -4,23 +4,116 @@ import { Bookings } from '../database/schemas/bookings'
 import { statusCodes } from '../utils'
 import { Products, TourDates, Users } from '../database/schemas'
 import moment from 'moment'
-import "moment/locale/es";
+import 'moment/locale/es'
 
-// 🔍 Obtener todas las reservas
-export const getBookingsService = async () => {
+// 🔍 Obtener todas las reservas de un usuario (para getUserBookings)
+export const getUserBookingsService = async (userId: string) => {
+  if (!userId) {
+    const error: any = new Error('El ID del usuario es obligatorio.')
+    error.statusCode = 400
+    throw error
+  }
+
   try {
-    const bookings = await db.select().from(Bookings)
+    const bookings = await db
+      .select({
+        id: Bookings.id,
+        tickets: Bookings.tickets,
+        total: Bookings.total,
+        status: Bookings.status,
+        productId: Bookings.product_id,
+        productName: Products.name,
+        tourDate: TourDates.date,
+      })
+      .from(Bookings)
+      .leftJoin(Products, eq(Bookings.product_id, Products.id))
+      .leftJoin(TourDates, eq(Bookings.tour_date_id, TourDates.id))
+      .where(eq(Bookings.user_id, userId))
+      .execute()
+
+    if (!bookings || bookings.length === 0) {
+      const error: any = new Error('El usuario no tiene reservas.')
+      error.statusCode = 404
+      console.error('404:', error.message)
+      throw error
+    }
+
     return bookings
-  } catch (error) {
+  } catch (error: any) {
+    if (!error.statusCode) {
+      const err: any = new Error('Error al obtener las reservas del usuario.')
+      err.statusCode = 500
+      throw err
+    }
+    throw error
+  }
+}
+
+export const getBookingsByUserIdProductIdService = async (
+  userId: string,
+  productId: string,
+) => {
+  if (!productId) {
+    const error: any = new Error('El ID del producto es obligatorio.')
+    error.statusCode = 400
+    console.error('400:', error.message)
+    throw error
+  }
+
+  if (!userId) {
+    const error: any = new Error('El ID del usuario es obligatorio.')
+    error.statusCode = 400
+    console.error('400:', error.message)
+    throw error
+  }
+
+  try {
+    // Check if the user exists in the product table
+    const userExistsInProduct = await db
+      .select()
+      .from(Products)
+      .where(eq(Products.user_id, userId))
+      .execute()
+
+    if (!userExistsInProduct || userExistsInProduct.length === 0) {
+      const error: any = new Error(
+        'El usuario no está asociado a este producto.',
+      )
+      error.statusCode = 403
+      console.error('403:', error.message)
+      throw error
+    }
+
+    const bookings = await db
+      .select()
+      .from(Bookings)
+      .where(eq(Bookings.product_id, productId))
+      .execute()
+
+    if (!bookings || bookings.length === 0) {
+      const error: any = new Error('El producto no tiene reservas.')
+      error.statusCode = 404
+      console.error('404:', error.message)
+      throw error
+    }
+
+    return bookings
+  } catch (error: any) {
+    if (error.statusCode) {
+      throw error
+    }
     console.error('500:', statusCodes[500], '-', error)
-    throw new Error('Error al obtener las reservas.')
+    const err: any = new Error('Error al obtener las reservas del producto.')
+    err.statusCode = 500
+    throw err
   }
 }
 
 export const getBookingByIdService = async (bookingId: string) => {
   if (!bookingId) {
-    console.error('400:', 'El ID de la reserva es obligatorio.')
-    throw new Error('El ID de la reserva es obligatorio.')
+    const error: any = new Error('El ID de la reserva es obligatorio.')
+    error.statusCode = 400
+    throw error
   }
 
   try {
@@ -53,52 +146,9 @@ export const getBookingByIdService = async (bookingId: string) => {
     }
   } catch (error) {
     console.error('500:', 'Error al obtener la reserva extendida:', error)
-    throw new Error('Error al obtener la reserva extendida.')
-  }
-}
-
-// 🔍 Obtener todas las reservas de un usuario
-export const getBookingsForUserService = async (userId: string) => {
-  if (!userId) {
-    console.error('400:', statusCodes[400])
-    throw new Error('El ID del usuario es obligatorio.')
-  }
-
-  try {
-    const bookings = await db
-      .select()
-      .from(Bookings)
-      .where(eq(Bookings.user_id, userId))
-      .execute()
-
-    if (!bookings || bookings.length === 0) {
-      console.log('El usuario no tiene reservas.')
-    }
-
-    return bookings
-  } catch (error) {
-    console.error('500:', statusCodes[500], '-', error)
-    throw new Error('Error al obtener las reservas del usuario.')
-  }
-}
-
-export const getBookingsByProductIdService = async (productId: string) => {
-  if (!productId) {
-    console.error('400:', statusCodes[400])
-    throw new Error('El ID del producto es obligatorio.')
-  }
-
-  try {
-    const bookings = await db
-      .select()
-      .from(Bookings)
-      .where(eq(Bookings.product_id, productId))
-      .execute()
-
-    return bookings
-  } catch (error) {
-    console.error('500:', statusCodes[500], '-', error)
-    throw new Error('Error al obtener las reservas del producto.')
+    const err: any = new Error('Error al obtener la reserva extendida.')
+    err.statusCode = 500
+    throw err
   }
 }
 
@@ -114,13 +164,12 @@ export const createBookingService = async (bookingData: any) => {
   const missingFields = requiredFields.filter((field) => !bookingData[field])
 
   if (missingFields.length > 0) {
-    console.error(
-      '400:',
-      statusCodes[400],
-      '-',
-      `Faltan campos: ${missingFields.join(', ')}`,
+    const error: any = new Error(
+      `Los campos ${missingFields.join(', ')} son obligatorios.`,
     )
-    throw new Error(`Los campos ${missingFields.join(', ')} son obligatorios.`)
+    error.statusCode = 400
+    console.error('400:', error.message)
+    throw error
   }
 
   try {
@@ -132,9 +181,13 @@ export const createBookingService = async (bookingData: any) => {
       .returning()
 
     return newBooking
-  } catch (error) {
-    console.error('500:', statusCodes[500], '-', error)
-    throw new Error('Error al crear la reserva.')
+  } catch (error: any) {
+    if (!error.statusCode) {
+      const err: any = new Error('Error al obtener las reservas del usuario.')
+      err.statusCode = 500
+      throw err
+    }
+    throw error
   }
 }
 
@@ -144,8 +197,10 @@ export const updateBookingService = async (
   bookingData: any,
 ) => {
   if (!bookingId) {
-    console.error('400:', statusCodes[400])
-    throw new Error('El ID de la reserva es obligatorio.')
+    const error: any = new Error('El ID de la reserva es obligatorio.')
+    error.statusCode = 400
+    console.error('400:', error.message)
+    throw error
   }
 
   try {
@@ -156,14 +211,21 @@ export const updateBookingService = async (
       .returning()
 
     if (!updatedBooking) {
-      console.error('404:', statusCodes[404])
-      throw new Error('Reserva no encontrada para actualizar.')
+      const error: any = new Error('Reserva no encontrada para actualizar.')
+      error.statusCode = 404
+      console.error('404:', error.message)
+      throw error
     }
 
     return updatedBooking
-  } catch (error) {
+  } catch (error: any) {
+    if (error.statusCode) {
+      throw error
+    }
     console.error('500:', statusCodes[500], '-', error)
-    throw new Error('Error al actualizar la reserva.')
+    const err: any = new Error('Error al actualizar la reserva.')
+    err.statusCode = 500
+    throw err
   }
 }
 
@@ -172,8 +234,10 @@ export const updateBookingStatusByTransactionId = async (
   newStatus: 'completed' | 'in-process' | 'canceled',
 ) => {
   if (!transactionId) {
-    console.error('400:', statusCodes[400])
-    throw new Error('El ID de la transacción es obligatorio.')
+    const error: any = new Error('El ID de la transacción es obligatorio.')
+    error.statusCode = 400
+    console.error('400:', error.message)
+    throw error
   }
 
   try {
@@ -188,17 +252,23 @@ export const updateBookingStatusByTransactionId = async (
     }
 
     return updatedBooking
-  } catch (error) {
-    console.error('500:', statusCodes[500], '-', error)
-    throw new Error('Error al actualizar el estado del booking.')
+  } catch (error: any) {
+    if (!error.statusCode) {
+      const err: any = new Error('Error al actualizar el estado del booking.')
+      err.statusCode = 500
+      throw err
+    }
+    throw error
   }
 }
 
 // ❌ Eliminar una reserva
 export const deleteBookingService = async (bookingId: string) => {
   if (!bookingId) {
-    console.error('400:', statusCodes[400])
-    throw new Error('El ID de la reserva es obligatorio.')
+    const error: any = new Error('El ID de la reserva es obligatorio.')
+    error.statusCode = 400
+    console.error('400:', error.message)
+    throw error
   }
 
   try {
@@ -208,13 +278,20 @@ export const deleteBookingService = async (bookingId: string) => {
       .returning()
 
     if (!deletedBooking) {
-      console.error('404:', statusCodes[404])
-      throw new Error('Reserva no encontrada para eliminar.')
+      const error: any = new Error('Reserva no encontrada para eliminar.')
+      error.statusCode = 404
+      console.error('404:', error.message)
+      throw error
     }
 
     return deletedBooking
-  } catch (error) {
+  } catch (error: any) {
+    if (error.statusCode) {
+      throw error
+    }
     console.error('500:', statusCodes[500], '-', error)
-    throw new Error('Error al eliminar la reserva.')
+    const err: any = new Error('Error al eliminar la reserva.')
+    err.statusCode = 500
+    throw err
   }
 }
