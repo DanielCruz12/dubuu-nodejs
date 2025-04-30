@@ -4,6 +4,7 @@ import {
   deleteProductService,
   getProductByIdService,
   getProductsByUserIdService,
+  getProductsByUserIdSimplifiedService,
   getProductsService,
 } from '../services/product-service'
 import { statusCodes } from '../utils'
@@ -42,6 +43,19 @@ export const getProductsByUserId = async (req: Request, res: Response) => {
   try {
     const userId = req.params.id
     const products = await getProductsByUserIdService(userId)
+    res.status(200).json(products)
+  } catch (error: any) {
+    const status = error.status || 500
+    const message =
+      statusCodes[status] || error.message || 'Error al obtener los productos.'
+    console.error('Error en getProductsByUserId:', error)
+    res.status(status).json({ message })
+  }
+}
+export const getProductsByUserIdSimplified = async (req: Request, res: Response) => {
+  try {
+    const userId = req.params.id
+    const products = await getProductsByUserIdSimplifiedService(userId)
     res.status(200).json(products)
   } catch (error: any) {
     const status = error.status || 500

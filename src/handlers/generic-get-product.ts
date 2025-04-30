@@ -91,3 +91,24 @@ export const getBaseProductInfo = async (productId: string) => {
 
   return result[0] || null
 }
+
+export const getBaseProductInfoSimplified = async (productId: string) => {
+  const result = await db
+    .select({
+      id: Products.id,
+      name: Products.name,
+      product_type: {
+        id: ProductTypes.id,
+        name: ProductTypes.name,
+      },
+    })
+    .from(Products)
+    .where(and(eq(Products.id, productId), eq(Products.is_approved, true)))
+
+    .innerJoin(ProductTypes, eq(Products.product_type_id, ProductTypes.id))
+
+    .groupBy(Products.id, ProductTypes.id)
+    .limit(1)
+
+  return result[0] || null
+}

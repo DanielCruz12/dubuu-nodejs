@@ -9,7 +9,10 @@ import {
 } from '../database/schemas/product-catalogs'
 import { eq, sql, and, ilike, gte, lte, desc } from 'drizzle-orm'
 import { createTourHandler } from '../handlers/create-tour'
-import { getBaseProductInfo } from '../handlers/generic-get-product'
+import {
+  getBaseProductInfo,
+  getBaseProductInfoSimplified,
+} from '../handlers/generic-get-product'
 import { getTourById } from '../handlers/get-tour'
 import { getRentalById } from '../handlers/get-rental'
 
@@ -132,6 +135,33 @@ export const getProductsByUserIdService = async (userId: string) => {
   const enrichedProducts = await Promise.all(
     productIds.map(async ({ id }) => {
       const baseProduct = await getBaseProductInfo(id)
+      if (!baseProduct) return null
+
+      const category = baseProduct.product_type.name
+
+      switch (category) {
+        case 'tours':
+          return await getTourById(id, baseProduct)
+        case 'rental':
+          return await getRentalById(id, baseProduct)
+      }
+    }),
+  )
+
+  // Filtramos nulos por si algún producto fue eliminado o no está aprobado
+  return enrichedProducts.filter(Boolean)
+}
+export const getProductsByUserIdSimplifiedService = async (userId: string) => {
+  // Paso 1: obtenemos solo los IDs de productos del usuario
+  const productIds = await db
+    .select({ id: Products.id })
+    .from(Products)
+    .where(eq(Products.user_id, userId))
+
+  // Paso 2: usamos getBaseProductInfo y la lógica por categoría
+  const enrichedProducts = await Promise.all(
+    productIds.map(async ({ id }) => {
+      const baseProduct = await getBaseProductInfoSimplified(id)
       if (!baseProduct) return null
 
       const category = baseProduct.product_type.name
