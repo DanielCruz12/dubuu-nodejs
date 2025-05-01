@@ -16,7 +16,7 @@ import { paymentAccountRoutes } from './payment-account-routes'
 
 const router = express.Router()
 
-router.use('/ratings', requireAuth(), ratingRoutes)
+router.use('/ratings', ratingRoutes)
 router.use('/users', requireAuth(), requireRole(['host']), userRoutes)
 router.use('/payments', requireAuth(), requireRole(['host']), paymentAccountRoutes)
 router.use('/bookings', requireAuth(), bookingsRoutes)

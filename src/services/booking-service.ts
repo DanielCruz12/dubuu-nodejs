@@ -5,6 +5,7 @@ import { statusCodes } from '../utils'
 import { Products, TourDates, Users } from '../database/schemas'
 import moment from 'moment'
 import 'moment/locale/es'
+import { decrypt } from '../utils/crypto'
 
 // 🔍 Obtener todas las reservas de un usuario (para getUserBookings)
 export const getUserBookingsService = async (userId: string) => {
@@ -84,20 +85,48 @@ export const getBookingsByUserIdProductIdService = async (
       throw error
     }
 
+    // Retrieve bookings with user and product relations
     const bookings = await db
-      .select()
+      .select({
+        bookingId: Bookings.id,
+        tickets: Bookings.tickets,
+        total: Bookings.total,
+        productId: Bookings.product_id,
+        user: {
+          first_name: Users.first_name,
+          username: Users.username,
+          last_name: Users.last_name,
+          email: Users.email,
+        },
+        status: Bookings.status,
+        name: Products.name,
+        tourDate: TourDates.date,
+        createdAt: Bookings.created_at,
+        updatedAt: Bookings.updated_at,
+      })
       .from(Bookings)
+      .leftJoin(Products, eq(Bookings.product_id, Products.id))
+      .leftJoin(TourDates, eq(Bookings.tour_date_id, TourDates.id))
+      .leftJoin(Users, eq(Bookings.user_id, Users.id))
       .where(eq(Bookings.product_id, productId))
       .execute()
 
-    if (!bookings || bookings.length === 0) {
+    const decryptedBookings = bookings.map((booking: any) => ({
+      ...booking,
+      user: {
+        ...booking.user,
+        email: decrypt(booking.user.email),
+      },
+    }))
+
+    if (!decryptedBookings || decryptedBookings.length === 0) {
       const error: any = new Error('El producto no tiene reservas.')
       error.statusCode = 404
       console.error('404:', error.message)
       throw error
     }
 
-    return bookings
+    return decryptedBookings
   } catch (error: any) {
     if (error.statusCode) {
       throw error
