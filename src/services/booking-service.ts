@@ -22,8 +22,12 @@ export const getUserBookingsService = async (userId: string) => {
         tickets: Bookings.tickets,
         total: Bookings.total,
         status: Bookings.status,
-        productId: Bookings.product_id,
-        productName: Products.name,
+        product_id: Bookings.product_id,
+        product_name: Products.name,
+        product_banner: Products.banner,
+        product_address: Products.address,
+        country: Products.country,
+        product_description: Products.description,
         tourDate: TourDates.date,
       })
       .from(Bookings)
@@ -32,7 +36,7 @@ export const getUserBookingsService = async (userId: string) => {
       .where(eq(Bookings.user_id, userId))
       .execute()
 
-    if (!bookings || bookings.length === 0) {
+    if (!bookings) {
       const error: any = new Error('El usuario no tiene reservas.')
       error.statusCode = 404
       console.error('404:', error.message)
