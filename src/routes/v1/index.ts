@@ -13,14 +13,21 @@ import { productTypesRoutes } from './product-types-routes'
 import { requireAuth } from '@clerk/express'
 import { requireRole } from '../../middlewares/role-validator'
 import { paymentAccountRoutes } from './payment-account-routes'
+import { favoritesRoutes } from './favorite-routes'
 
 const router = express.Router()
 
 router.use('/ratings', ratingRoutes)
 router.use('/users', requireAuth(), requireRole(['host']), userRoutes)
-router.use('/payments', requireAuth(), requireRole(['host']), paymentAccountRoutes)
+router.use(
+  '/payments',
+  requireAuth(),
+  requireRole(['host']),
+  paymentAccountRoutes,
+)
 router.use('/bookings', requireAuth(), bookingsRoutes)
 router.use('/products', productRoutes)
+router.use('/favorite', favoritesRoutes)
 router.use('/product-amenities', productAmenitiesRoutes)
 router.use('/product-types', productTypesRoutes)
 router.use('/product-category', productCategoriesRoutes)
