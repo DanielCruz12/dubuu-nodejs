@@ -13,7 +13,7 @@ const router = express.Router()
 router.get('/', requireRole(['host']), getUsers)
 router.get('/:id', getUserById)
 router.post('/', createUser)
-router.put('/:id', requireRole(['host']), updateUser)
+router.put('/:id', updateUser)
 router.delete('/:id', deleteUser)
 
 export { router as userRoutes }
