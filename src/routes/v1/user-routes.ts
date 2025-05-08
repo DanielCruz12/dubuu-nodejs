@@ -6,13 +6,14 @@ import {
   deleteUser,
   updateUser,
 } from '../../controllers/user-controller'
+import { requireRole } from '../../middlewares/role-validator'
 
 const router = express.Router()
 
-router.get('/', getUsers)
+router.get('/', requireRole(['host']), getUsers)
 router.get('/:id', getUserById)
 router.post('/', createUser)
-router.put('/:id', updateUser)
+router.put('/:id', requireRole(['host']), updateUser)
 router.delete('/:id', deleteUser)
 
 export { router as userRoutes }

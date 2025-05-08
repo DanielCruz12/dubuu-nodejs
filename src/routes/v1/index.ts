@@ -18,7 +18,7 @@ import { favoritesRoutes } from './favorite-routes'
 const router = express.Router()
 
 router.use('/ratings', ratingRoutes)
-router.use('/users', requireAuth(), requireRole(['host']), userRoutes)
+router.use('/users', requireAuth(), userRoutes)
 router.use(
   '/payments',
   requireAuth(),
@@ -27,7 +27,7 @@ router.use(
 )
 router.use('/bookings', requireAuth(), bookingsRoutes)
 router.use('/products', productRoutes)
-router.use('/favorite', favoritesRoutes)
+router.use('/favorite', requireAuth(), favoritesRoutes)
 router.use('/product-amenities', productAmenitiesRoutes)
 router.use('/product-types', productTypesRoutes)
 router.use('/product-category', productCategoriesRoutes)
