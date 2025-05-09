@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 import { db } from '../database/db'
 import { Bookings } from '../database/schemas/bookings'
 import { statusCodes } from '../utils'
@@ -192,7 +192,10 @@ export const createBookingService = async (bookingData: any) => {
     'product_id',
     'paymentMethod',
     'idTransaccion',
+    'tickets',
   ]
+
+  console.log(bookingData)
 
   const missingFields = requiredFields.filter((field) => !bookingData[field])
 
@@ -212,6 +215,13 @@ export const createBookingService = async (bookingData: any) => {
         ...bookingData,
       })
       .returning()
+
+    await db
+      .update(TourDates)
+      .set({
+        people_booked: sql`${TourDates.people_booked} + ${bookingData.tickets}`,
+      })
+      .where(eq(TourDates.id, bookingData.tour_date_id))
 
     return newBooking
   } catch (error: any) {
