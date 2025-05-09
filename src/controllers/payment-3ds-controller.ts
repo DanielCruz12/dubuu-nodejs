@@ -53,7 +53,7 @@ export const handleCreate3DSTransaction = async (
         telefonosNotificacion: '77886116',
         notificarTransaccionCliente: true,
       },
-      urlRedirect: 'https://dantour.vercel.app/account',
+      urlRedirect: 'https://www.dubuu.com/home',
       nombre: firstName,
       apellido: lastName,
       email,
@@ -69,18 +69,20 @@ export const handleCreate3DSTransaction = async (
 
     if (!result || !result.idTransaccion || !result.urlCompletarPago3Ds) {
       return res.status(502).json({
-        message: 'Error al procesar el pago. Intenta de nuevo o usa otra tarjeta.',
-      });
+        message:
+          'Error al procesar el pago. Intenta de nuevo o usa otra tarjeta.',
+      })
     }
 
     return res.status(200).json(result)
   } catch (error: any) {
-    console.error("Error en createTransaction3DS:", error);
+    console.error('Error en createTransaction3DS:', error)
 
-    const mensajes = error?.mensajes || error?.response?.data?.mensajes;
-  
+    const mensajes = error?.mensajes || error?.response?.data?.mensajes
+
     return res.status(400).json({
-      message: mensajes?.[0] || error.message || "Error al crear transacción 3DS",
-    });
+      message:
+        mensajes?.[0] || error.message || 'Error al crear transacción 3DS',
+    })
   }
 }
