@@ -7,7 +7,7 @@ import {
   ProductTypes,
   TargetProductAudiences,
 } from '../database/schemas/product-catalogs'
-import { eq, sql, and, ilike, gte, lte, desc } from 'drizzle-orm'
+import { eq, sql, and, ilike, gte, lte, desc, or, lt } from 'drizzle-orm'
 import { createTourHandler } from '../handlers/create-tour'
 import {
   getBaseProductInfo,
@@ -17,9 +17,8 @@ import { getTourById } from '../handlers/get-tour'
 import { getRentalById } from '../handlers/get-rental'
 
 export const getProductsService = async (req: Request) => {
-  const page = parseInt(req.query.page as string) || 1
   const limit = parseInt(req.query.limit as string) || 10
-  const offset = (page - 1) * limit
+  const cursor = req.query.cursor as string | undefined // ID del último producto cargado
 
   const productTypeName =
     req.query.product_type?.toString().toLowerCase() || 'tours'
@@ -36,8 +35,10 @@ export const getProductsService = async (req: Request) => {
     ilike(ProductTypes.name, productTypeName),
     ...(search
       ? [
-          ilike(Products.name, `%${search}%`),
-          ilike(Products.description, `%${search}%`),
+          or(
+            ilike(Products.name, `%${search}%`),
+            ilike(Products.description, `%${search}%`),
+          ),
         ]
       : []),
     ...(country ? [eq(Products.country, country)] : []),
@@ -46,8 +47,11 @@ export const getProductsService = async (req: Request) => {
       : []),
     ...(minPrice !== undefined ? [gte(Products.price, String(minPrice))] : []),
     ...(maxPrice !== undefined ? [lte(Products.price, String(maxPrice))] : []),
+    // Si hay un cursor, añadimos la condición para obtener registros después del cursor
+    ...(cursor ? [lt(Products.id, cursor)] : []),
   ]
 
+  // Obtenemos un elemento extra para saber si hay más resultados
   const products = await db
     .select({
       product: {
@@ -86,25 +90,29 @@ export const getProductsService = async (req: Request) => {
       TargetProductAudiences.id,
       ProductTypes.id,
     )
-    .orderBy(desc(Products.created_at))
-    .limit(limit + 1) // pedimos uno más para saber si hay más
-    .offset(offset)
+    .orderBy(desc(Products.id)) // Ordenamos por ID para cursor-based pagination
+    .limit(limit + 1) // Pedimos un elemento extra para saber si hay más
 
+  // Verificamos si hay más resultados
   const hasMore = products.length > limit
-  const productsSlice = products.slice(0, limit)
+  // Eliminamos el elemento extra si existe
+  const results = hasMore ? products.slice(0, limit) : products
+
+  // Obtenemos el último ID para usarlo como cursor en la siguiente petición
+  const nextCursor =
+    results.length > 0 ? results[results.length - 1].product.id : null
 
   return {
-    data: productsSlice.map((p) => ({
+    data: results.map((p) => ({
       ...p.product,
     })),
     pagination: {
-      page,
-      limit,
       hasMore,
+      nextCursor,
+      limit,
     },
   }
 }
-
 export const getProductByIdService = async (productId: string) => {
   const baseProduct = await getBaseProductInfo(productId)
   if (!baseProduct) return null
