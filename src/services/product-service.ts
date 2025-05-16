@@ -48,12 +48,6 @@ export const getProductsService = async (req: Request) => {
     ...(maxPrice !== undefined ? [lte(Products.price, String(maxPrice))] : []),
   ]
 
-  const [{ count: total = 0 } = {}] = await db
-    .select({ count: sql<number>`COUNT(*)` })
-    .from(Products)
-    .innerJoin(ProductTypes, eq(Products.product_type_id, ProductTypes.id))
-    .where(and(...whereConditions))
-
   const products = await db
     .select({
       product: {
@@ -85,6 +79,7 @@ export const getProductsService = async (req: Request) => {
       eq(Products.target_product_audience_id, TargetProductAudiences.id),
     )
     .innerJoin(ProductTypes, eq(Products.product_type_id, ProductTypes.id))
+    .where(and(...whereConditions))
     .groupBy(
       Products.id,
       ProductCategories.id,
@@ -92,20 +87,20 @@ export const getProductsService = async (req: Request) => {
       ProductTypes.id,
     )
     .orderBy(desc(Products.created_at))
-    .limit(limit)
+    .limit(limit + 1) // pedimos uno más para saber si hay más
     .offset(offset)
 
-  const totalPages = Math.ceil(total / limit)
+  const hasMore = products.length > limit
+  const productsSlice = products.slice(0, limit)
 
   return {
-    data: products.map((p) => ({
+    data: productsSlice.map((p) => ({
       ...p.product,
     })),
     pagination: {
-      total,
-      totalPages,
       page,
       limit,
+      hasMore,
     },
   }
 }
