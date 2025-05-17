@@ -7,7 +7,7 @@ import {
   ProductTypes,
   TargetProductAudiences,
 } from '../database/schemas/product-catalogs'
-import { eq, sql, and, ilike, gte, lte, desc, or, lt } from 'drizzle-orm'
+import { eq, sql, and, ilike, gte, lte, desc, or, lt, asc } from 'drizzle-orm'
 import { createTourHandler } from '../handlers/create-tour'
 import {
   getBaseProductInfo,
@@ -18,7 +18,7 @@ import { getRentalById } from '../handlers/get-rental'
 
 export const getProductsService = async (req: Request) => {
   const limit = parseInt(req.query.limit as string) || 10
-  const cursor = req.query.cursor as string | undefined // ID del último producto cargado
+  const cursor = req.query.cursor as string | undefined // Fecha del último producto cargado
 
   const productTypeName =
     req.query.product_type?.toString().toLowerCase() || 'tours'
@@ -47,8 +47,8 @@ export const getProductsService = async (req: Request) => {
       : []),
     ...(minPrice !== undefined ? [gte(Products.price, String(minPrice))] : []),
     ...(maxPrice !== undefined ? [lte(Products.price, String(maxPrice))] : []),
-    // Si hay un cursor, añadimos la condición para obtener registros después del cursor
-    ...(cursor ? [lt(Products.id, cursor)] : []),
+    // Si hay un cursor, añadimos la condición para obtener registros con created_at menor que el cursor
+    ...(cursor ? [lt(Products.created_at, new Date(cursor))] : []),
   ]
 
   // Obtenemos un elemento extra para saber si hay más resultados
@@ -90,7 +90,10 @@ export const getProductsService = async (req: Request) => {
       TargetProductAudiences.id,
       ProductTypes.id,
     )
-    .orderBy(desc(Products.id)) // Ordenamos por ID para cursor-based pagination
+    .orderBy(
+      desc(Products.created_at), // Ordenamos primero por fecha de creación descendente
+      desc(Products.id), // Desempate por ID para productos con la misma fecha
+    )
     .limit(limit + 1) // Pedimos un elemento extra para saber si hay más
 
   // Verificamos si hay más resultados
@@ -98,9 +101,11 @@ export const getProductsService = async (req: Request) => {
   // Eliminamos el elemento extra si existe
   const results = hasMore ? products.slice(0, limit) : products
 
-  // Obtenemos el último ID para usarlo como cursor en la siguiente petición
+  // Obtenemos la fecha de creación del último producto para usarla como cursor
   const nextCursor =
-    results.length > 0 ? results[results.length - 1].product.id : null
+    results.length > 0
+      ? results[results.length - 1].product.created_at.toISOString()
+      : null
 
   return {
     data: results.map((p) => ({
