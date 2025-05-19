@@ -1,13 +1,13 @@
 import { db } from '../database/db'
 import { Request } from 'express'
-import { Products, Ratings, TourDates, Tours } from '../database/schemas'
+import { Products, Ratings } from '../database/schemas'
 import {
   ProductAmenitiesProducts,
   ProductCategories,
   ProductTypes,
   TargetProductAudiences,
 } from '../database/schemas/product-catalogs'
-import { eq, sql, and, ilike, gte, lte, desc, or, lt, asc } from 'drizzle-orm'
+import { eq, and, ilike, gte, lte, desc, or, lt } from 'drizzle-orm'
 import { createTourHandler } from '../handlers/create-tour'
 import {
   getBaseProductInfo,

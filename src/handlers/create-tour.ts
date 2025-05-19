@@ -8,6 +8,8 @@ export const createTourHandler = async (data: any, productId: string) => {
     max_people,
     itinerary = [],
     highlight,
+    expenses = [],
+    difficulty = '',
     included,
     duration,
     amenities = [],
@@ -22,6 +24,10 @@ export const createTourHandler = async (data: any, productId: string) => {
     !Array.isArray(available_dates) ||
     available_dates.length === 0 ||
     !max_people ||
+    !difficulty ||
+    !expenses ||
+    !Array.isArray(expenses) ||
+    expenses.length === 0 ||
     !highlight ||
     !included ||
     !duration
@@ -46,6 +52,9 @@ export const createTourHandler = async (data: any, productId: string) => {
     highlight,
     included,
     duration,
+    expenses,
+    difficulty,
+    packing_list: [],
     lat,
     long,
   })

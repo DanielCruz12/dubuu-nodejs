@@ -8,6 +8,10 @@ export const Tours = pgTable('tours', {
     .notNull(),
   departure_point: text('departure_point').notNull().default(''),
 
+  expenses: text('expenses').array().default(['']),
+  difficulty: text('difficulty').notNull().default(''),
+  packing_list: text('packing_list').array().default(['']),
+
   lat: text('lat').notNull().default(''),
   long: text('long').notNull().default(''),
   itinerary: text('itinerary').array().default(['']),
