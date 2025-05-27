@@ -14,10 +14,10 @@ export default defineConfig({
     password: process.env.DB_PASSWORD!,
     database: process.env.DB_NAME!,
     ssl: {
-      rejectUnauthorized: true,
-      /* ca: fs.readFileSync(
+      rejectUnauthorized: false,
+       ca: fs.readFileSync(
         path.join(__dirname, 'us-east-2-bundle.pem')
-      ).toString(), */
+      ).toString(),
     },
   },
   strict: true,

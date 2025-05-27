@@ -1,7 +1,7 @@
 {
-  "name": "fedepatel-node-sequelize",
+  "name": "dubuu",
   "version": "0.0.1",
-  "description": "rest api of fedepatel-node-sequelize",
+  "description": "rest api of dubuu api",
   "main": "src/index.ts",
   "type": "commonjs",
   "scripts": {
