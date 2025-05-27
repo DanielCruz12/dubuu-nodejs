@@ -115,6 +115,33 @@ CREATE TABLE "ratings" (
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
+CREATE TABLE "rentals" (
+	"product_id" uuid PRIMARY KEY NOT NULL,
+	"brand" text NOT NULL,
+	"model" text NOT NULL,
+	"year" integer NOT NULL,
+	"condition" text DEFAULT 'used',
+	"mileage" integer NOT NULL,
+	"transmission" text NOT NULL,
+	"seating_capacity" integer NOT NULL,
+	"pickup_location" text NOT NULL,
+	"max_delivery_distance_km" integer DEFAULT 15,
+	"base_delivery_fee" numeric(10, 2) DEFAULT '2.00',
+	"fee_per_km" numeric(10, 2) DEFAULT '1.00',
+	"offers_delivery" boolean DEFAULT false,
+	"price_per_day" numeric(10, 2) NOT NULL,
+	"available_from" date NOT NULL,
+	"available_until" date NOT NULL,
+	"is_available" boolean DEFAULT true,
+	"is_approved" boolean DEFAULT false,
+	"is_live" boolean DEFAULT true,
+	"fuel_type" text NOT NULL,
+	"type_car" text NOT NULL,
+	"color" text NOT NULL,
+	"doors" integer NOT NULL,
+	"engine" text NOT NULL
+);
+--> statement-breakpoint
 CREATE TABLE "user_roles" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"name" varchar(255) NOT NULL,
@@ -143,6 +170,9 @@ CREATE TABLE "tour_dates" (
 CREATE TABLE "tours" (
 	"product_id" uuid PRIMARY KEY NOT NULL,
 	"departure_point" text DEFAULT '' NOT NULL,
+	"expenses" text[] DEFAULT '{""}',
+	"difficulty" text DEFAULT '' NOT NULL,
+	"packing_list" text[] DEFAULT '{""}',
 	"lat" text DEFAULT '' NOT NULL,
 	"long" text DEFAULT '' NOT NULL,
 	"itinerary" text[] DEFAULT '{""}',
@@ -190,6 +220,7 @@ ALTER TABLE "products" ADD CONSTRAINT "products_product_category_id_product_cate
 ALTER TABLE "products" ADD CONSTRAINT "products_product_type_id_product_types_id_fk" FOREIGN KEY ("product_type_id") REFERENCES "public"."product_types"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "ratings" ADD CONSTRAINT "ratings_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "ratings" ADD CONSTRAINT "ratings_product_id_products_id_fk" FOREIGN KEY ("product_id") REFERENCES "public"."products"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "rentals" ADD CONSTRAINT "rentals_product_id_products_id_fk" FOREIGN KEY ("product_id") REFERENCES "public"."products"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "tour_dates" ADD CONSTRAINT "tour_dates_tour_id_tours_product_id_fk" FOREIGN KEY ("tour_id") REFERENCES "public"."tours"("product_id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "tours" ADD CONSTRAINT "tours_product_id_products_id_fk" FOREIGN KEY ("product_id") REFERENCES "public"."products"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "users" ADD CONSTRAINT "users_role_id_user_roles_id_fk" FOREIGN KEY ("role_id") REFERENCES "public"."user_roles"("id") ON DELETE no action ON UPDATE no action;
