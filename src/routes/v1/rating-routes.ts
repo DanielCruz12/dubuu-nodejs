@@ -11,7 +11,7 @@ const router = express.Router()
 
 router.get('/:id', getRatings)
 router.get('/:id', getRatingById)
-router.post('/', requireAuth(), createRating)
+router.post('/', createRating)
 router.delete('/:id', requireAuth(), deleteRating)
 
 export { router as ratingRoutes }
