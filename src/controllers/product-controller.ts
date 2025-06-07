@@ -84,9 +84,71 @@ export const getProductsByUserIdSimplified = async (
 }
 
 // Crear producto (ahora siempre con archivos)
+// Crear producto (ahora siempre con archivos)
 export const createProduct = async (req: Request, res: Response) => {
   try {
+    console.log('=== DEBUG CONTROLLER ===')
+    console.log('req.body original:', req.body)
+    console.log('req.files:', req.files)
+    console.log('Keys de req.body:', Object.keys(req.body))
+
+    // Verificar cada campo individualmente
+    console.log('Campos individuales en req.body:')
+    console.log('- name:', req.body.name, '(tipo:', typeof req.body.name, ')')
+    console.log(
+      '- description:',
+      req.body.description,
+      '(tipo:',
+      typeof req.body.description,
+      ')',
+    )
+    console.log(
+      '- price:',
+      req.body.price,
+      '(tipo:',
+      typeof req.body.price,
+      ')',
+    )
+    console.log(
+      '- user_id:',
+      req.body.user_id,
+      '(tipo:',
+      typeof req.body.user_id,
+      ')',
+    )
+    console.log(
+      '- country:',
+      req.body.country,
+      '(tipo:',
+      typeof req.body.country,
+      ')',
+    )
+    console.log(
+      '- product_category_id:',
+      req.body.product_category_id,
+      '(tipo:',
+      typeof req.body.product_category_id,
+      ')',
+    )
+    console.log(
+      '- target_product_audience_id:',
+      req.body.target_product_audience_id,
+      '(tipo:',
+      typeof req.body.target_product_audience_id,
+      ')',
+    )
+    console.log(
+      '- product_type_id:',
+      req.body.product_type_id,
+      '(tipo:',
+      typeof req.body.product_type_id,
+      ')',
+    )
+
     const productData = { ...req.body }
+    console.log('=== FIN DEBUG CONTROLLER ===')
+
+    // ... resto del código del controlador
 
     // Obtener nombres de tipo y categoría
     const { typeName, categoryName } = await getProductTypeAndCategory(
