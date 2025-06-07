@@ -9,10 +9,16 @@ import { handleWebHook } from './controllers/clerk-webhook-controller'
 import { handleWompiWebhook } from './controllers/wompi-webhook-controller'
 
 dotenv.config()
+
 const app = express()
 
-app.use(cors())
-
+app.use(
+  cors({
+    origin: process.env.FRONTEND_URL,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  }),
+)
 
 app.post(
   '/api/webhooks',
@@ -33,12 +39,10 @@ app.post('/webhook-wompi', handleWompiWebhook)
 setupSwagger(app)
 app.use(express.json())
 
-
 app.use('/api/v1', wompiRouter)
 
 //* Define routes
 app.use('/api/v1', apiRoutes)
-
 
 //* Fallback route for undefined endpoints
 app.use('/api/v1', (req, res) => {

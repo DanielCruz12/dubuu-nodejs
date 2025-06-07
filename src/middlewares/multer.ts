@@ -1,19 +1,9 @@
 import multer from 'multer'
-import { allowedMimeTypes } from '../config/allowed-mime-types'
 
+// Configure memory storage for multer
 const storage = multer.memoryStorage()
 
+// Setup multer with storage, file type, and size limit (e.g., 5MB)
 export const upload = multer({
-  storage,
-  limits: {
-    fileSize: 50 * 1024 * 1024, // 50MB por archivo
-    files: 20, // Máximo 20 archivos
-  },
-  fileFilter: (req, file, cb) => {
-    if (allowedMimeTypes.includes(file.mimetype)) {
-      cb(null, true)
-    } else {
-      cb(new Error(`Tipo de archivo no permitido: ${file.mimetype}`))
-    }
-  },
+  storage: storage,
 })

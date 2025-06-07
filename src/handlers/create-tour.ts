@@ -25,9 +25,6 @@ export const createTourHandler = async (data: any, productId: string) => {
     available_dates.length === 0 ||
     !max_people ||
     !difficulty ||
-    !expenses ||
-    !Array.isArray(expenses) ||
-    expenses.length === 0 ||
     !highlight ||
     !included ||
     !duration

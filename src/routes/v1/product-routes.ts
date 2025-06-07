@@ -9,16 +9,15 @@ import {
 } from '../../controllers/product-controller'
 import { requireAuth } from '@clerk/express'
 import { upload } from '../../middlewares/multer'
+import { validateCreateProduct } from '../../middlewares/product-validation'
 
 const router = express.Router()
 
-// Rutas de consulta
 router.get('/', getProducts)
 router.get('/:id', getProductById)
 router.get('/user/:id', getProductsByUserId)
 router.get('/usersimplified/:id', requireAuth(), getProductsByUserIdSimplified)
 
-// Crear producto (siempre con archivos)
 router.post(
   '/',
   upload.fields([
@@ -27,6 +26,7 @@ router.post(
     { name: 'files', maxCount: 5 },
     { name: 'videos', maxCount: 3 },
   ]),
+  validateCreateProduct,
   createProduct,
 )
 
