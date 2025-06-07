@@ -9,13 +9,12 @@ import {
 } from '../../controllers/product-controller'
 import { requireAuth } from '@clerk/express'
 import { upload } from '../../middlewares/multer'
-import { validateCreateProduct } from '../../middlewares/product-validation'
 
 const router = express.Router()
 
 router.get('/', getProducts)
 router.get('/:id', getProductById)
-router.get('/user/:id', getProductsByUserId)
+router.get('/user/:id', requireAuth(), getProductsByUserId)
 router.get('/usersimplified/:id', requireAuth(), getProductsByUserIdSimplified)
 
 router.post(
@@ -26,7 +25,7 @@ router.post(
     { name: 'files', maxCount: 5 },
     { name: 'videos', maxCount: 3 },
   ]),
-  validateCreateProduct,
+  requireAuth(),
   createProduct,
 )
 
