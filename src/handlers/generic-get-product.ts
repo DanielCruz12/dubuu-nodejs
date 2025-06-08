@@ -61,7 +61,7 @@ export const getBaseProductInfo = async (productId: string) => {
       `.as('amenities'),
     })
     .from(Products)
-    .where(and(eq(Products.id, productId), eq(Products.is_approved, true)))
+    .where(and(eq(Products.id, productId)))
     .innerJoin(Users, eq(Products.user_id, Users.id))
     .innerJoin(
       ProductCategories,
@@ -103,7 +103,7 @@ export const getBaseProductInfoSimplified = async (productId: string) => {
       },
     })
     .from(Products)
-    .where(and(eq(Products.id, productId), eq(Products.is_approved, true)))
+    .where(and(eq(Products.id, productId)))
 
     .innerJoin(ProductTypes, eq(Products.product_type_id, ProductTypes.id))
 
