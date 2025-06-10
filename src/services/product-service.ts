@@ -30,6 +30,13 @@ export const getProductsService = async (req: Request) => {
   const maxPrice = req.query.max_price
     ? parseFloat(req.query.max_price as string)
     : undefined
+  const is_active = req.query.is_active
+    ? req.query.is_active === 'true'
+    : undefined
+
+  const minRating = req.query.min_rating
+    ? parseFloat(req.query.min_rating as string)
+    : undefined
 
   const whereConditions = [
     ilike(ProductTypes.name, productTypeName),
@@ -47,6 +54,10 @@ export const getProductsService = async (req: Request) => {
       : []),
     ...(minPrice !== undefined ? [gte(Products.price, String(minPrice))] : []),
     ...(maxPrice !== undefined ? [lte(Products.price, String(maxPrice))] : []),
+    ...(is_active !== undefined ? [eq(Products.is_active, is_active)] : []),
+    ...(minRating !== undefined
+      ? [gte(Products.average_rating, String(minRating))]
+      : []),
     // Si hay un cursor, añadimos la condición para obtener registros con created_at menor que el cursor
     ...(cursor ? [lt(Products.created_at, new Date(cursor))] : []),
   ]
