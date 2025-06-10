@@ -6,6 +6,7 @@ import {
   getProducts,
   getProductsByUserId,
   getProductsByUserIdSimplified,
+  updateProduct,
 } from '../../controllers/product-controller'
 import { requireAuth } from '@clerk/express'
 import { upload } from '../../middlewares/multer'
@@ -28,6 +29,8 @@ router.post(
   requireAuth(),
   createProduct,
 )
+
+router.patch('/:id', requireAuth(), updateProduct)
 
 // Eliminar producto (siempre con archivos)
 router.delete('/:id', requireAuth(), deleteProduct)

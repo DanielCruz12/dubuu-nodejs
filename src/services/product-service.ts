@@ -1,6 +1,6 @@
 import { db } from '../database/db'
 import { Request } from 'express'
-import { Products, Ratings } from '../database/schemas'
+import { Products, Ratings, TourDates } from '../database/schemas'
 import {
   ProductAmenitiesProducts,
   ProductCategories,
@@ -291,58 +291,122 @@ export const updateProductService = async (
   productData: any,
 ) => {
   try {
-    const { name, description, available_dates, amenities, ...rest } =
-      productData
+    const {
+      name,
+      description,
+      price,
+      address,
+      country,
+      is_active,
+      selectedDateId,
+      max_people,
+    } = productData
 
-    if (!name || !description) {
-      throw new Error(
-        'El nombre y la descripción del producto son obligatorios.',
-      )
+    // Preparar objeto de actualización para el producto base
+    const productUpdateData: any = {
+      updated_at: new Date(),
     }
 
-    if (
-      !available_dates ||
-      !Array.isArray(available_dates) ||
-      available_dates.length === 0
-    ) {
-      throw new Error('El campo available_dates debe ser un array no vacío.')
-    }
-
-    if (!amenities || !Array.isArray(amenities)) {
-      throw new Error('El campo amenities debe ser un array no vacío.')
-    }
-
-    const parsedDates = available_dates.map((date: string) => {
-      const parsed = new Date(date)
-      if (isNaN(parsed.getTime())) {
-        throw new Error(`La fecha '${date}' no es válida.`)
+    // Validar y agregar campos del producto base
+    if (name !== undefined) {
+      if (!name || name.trim() === '') {
+        throw new Error('El nombre del producto no puede estar vacío.')
       }
-      return parsed
-    })
+      productUpdateData.name = name.trim()
+    }
 
-    // Actualizar producto
-    const [updatedProduct] = await db
-      .update(Products)
-      .set({
-        ...rest,
-        name,
-        description,
-        available_dates: parsedDates,
-      })
-      .where(eq(Products.id, productId))
-      .returning()
+    if (description !== undefined) {
+      if (!description || description.trim() === '') {
+        throw new Error('La descripción del producto no puede estar vacía.')
+      }
+      productUpdateData.description = description.trim()
+    }
 
-    // Eliminar amenities actuales
-    await db
-      .delete(ProductAmenitiesProducts)
-      .where(eq(ProductAmenitiesProducts.productId, productId))
+    if (price !== undefined) {
+      if (!price || isNaN(parseFloat(price)) || parseFloat(price) <= 0) {
+        throw new Error('El precio debe ser un número válido mayor que 0.')
+      }
+      productUpdateData.price = parseFloat(price).toFixed(2)
+    }
 
-    // Insertar nuevos amenities
-    const joinRows = amenities.map((amenityId: string) => ({
-      productId,
-      productAmenityId: amenityId,
-    }))
-    await db.insert(ProductAmenitiesProducts).values(joinRows).execute()
+    if (address !== undefined) {
+      if (!address || address.trim() === '') {
+        throw new Error('La dirección no puede estar vacía.')
+      }
+      productUpdateData.address = address.trim()
+    }
+
+    if (country !== undefined) {
+      if (!country || country.trim() === '') {
+        throw new Error('El país no puede estar vacío.')
+      }
+      productUpdateData.country = country.trim()
+    }
+
+    if (is_active !== undefined) {
+      if (typeof is_active !== 'boolean') {
+        throw new Error('El estado activo debe ser verdadero o falso.')
+      }
+      productUpdateData.is_active = is_active
+    }
+
+    // Verificar que hay al menos un campo para actualizar
+    const hasProductUpdates = Object.keys(productUpdateData).length > 1
+    const hasTourDateUpdates = selectedDateId && max_people !== undefined
+
+    if (!hasProductUpdates && !hasTourDateUpdates) {
+      throw new Error('No se proporcionaron campos para actualizar.')
+    }
+
+    // Actualizar producto base si hay cambios
+    let updatedProduct = null
+    if (hasProductUpdates) {
+      const [product] = await db
+        .update(Products)
+        .set(productUpdateData)
+        .where(eq(Products.id, productId))
+        .returning()
+
+      if (!product) {
+        throw new Error('Producto no encontrado o no se pudo actualizar.')
+      }
+      updatedProduct = product
+    }
+
+    // Actualizar fecha específica del tour si se proporciona
+    if (hasTourDateUpdates) {
+      // Validar max_people
+      if (isNaN(parseInt(max_people)) || parseInt(max_people) <= 0) {
+        throw new Error(
+          'El máximo de personas debe ser un número válido mayor que 0.',
+        )
+      }
+
+      const [updatedTourDate] = await db
+        .update(TourDates)
+        .set({
+          max_people: parseInt(max_people),
+        })
+        .where(eq(TourDates.id, selectedDateId))
+        .returning()
+
+      if (!updatedTourDate) {
+        throw new Error('Fecha del tour no encontrada o no se pudo actualizar.')
+      }
+    }
+
+    // Si no se actualizó el producto, obtenerlo para retornarlo
+    if (!updatedProduct) {
+      const [product] = await db
+        .select()
+        .from(Products)
+        .where(eq(Products.id, productId))
+
+      if (!product) {
+        throw new Error('Producto no encontrado.')
+      }
+      updatedProduct = product
+    }
 
     return updatedProduct
   } catch (error) {

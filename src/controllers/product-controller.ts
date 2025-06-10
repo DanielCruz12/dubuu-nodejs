@@ -6,9 +6,13 @@ import {
   getProductsByUserIdService,
   getProductsByUserIdSimplifiedService,
   getProductsService,
+  updateProductService,
 } from '../services/product-service'
 import { statusCodes } from '../utils'
 import { deleteFilesFromS3, uploadFilesToS3 } from '../utils/aws'
+import { db } from '../database/db'
+import { TourDates } from '../database/schemas'
+import { eq } from 'drizzle-orm'
 
 // Función para obtener nombres de tipo y categoría
 const getProductTypeAndCategory = async (
@@ -87,66 +91,7 @@ export const getProductsByUserIdSimplified = async (
 // Crear producto (ahora siempre con archivos)
 export const createProduct = async (req: Request, res: Response) => {
   try {
-    console.log('=== DEBUG CONTROLLER ===')
-    console.log('req.body original:', req.body)
-    console.log('req.files:', req.files)
-    console.log('Keys de req.body:', Object.keys(req.body))
-
-    // Verificar cada campo individualmente
-    console.log('Campos individuales en req.body:')
-    console.log('- name:', req.body.name, '(tipo:', typeof req.body.name, ')')
-    console.log(
-      '- description:',
-      req.body.description,
-      '(tipo:',
-      typeof req.body.description,
-      ')',
-    )
-    console.log(
-      '- price:',
-      req.body.price,
-      '(tipo:',
-      typeof req.body.price,
-      ')',
-    )
-    console.log(
-      '- user_id:',
-      req.body.user_id,
-      '(tipo:',
-      typeof req.body.user_id,
-      ')',
-    )
-    console.log(
-      '- country:',
-      req.body.country,
-      '(tipo:',
-      typeof req.body.country,
-      ')',
-    )
-    console.log(
-      '- product_category_id:',
-      req.body.product_category_id,
-      '(tipo:',
-      typeof req.body.product_category_id,
-      ')',
-    )
-    console.log(
-      '- target_product_audience_id:',
-      req.body.target_product_audience_id,
-      '(tipo:',
-      typeof req.body.target_product_audience_id,
-      ')',
-    )
-    console.log(
-      '- product_type_id:',
-      req.body.product_type_id,
-      '(tipo:',
-      typeof req.body.product_type_id,
-      ')',
-    )
-
     const productData = { ...req.body }
-    console.log('=== FIN DEBUG CONTROLLER ===')
 
     // ... resto del código del controlador
 
@@ -221,6 +166,93 @@ export const createProduct = async (req: Request, res: Response) => {
       error.message ||
       'Ocurrió un error al crear el producto. Verifica los datos ingresados.'
     console.error('Error en createProduct:', error)
+    res.status(status).json({ message })
+  }
+}
+
+export const updateProduct = async (req: Request, res: Response) => {
+  try {
+    const productId = req.params.id
+    const updateData = { ...req.body }
+    const { selectedDateId } = updateData
+
+    // Verificar que el producto existe
+    const existingProduct = await getProductByIdService(productId)
+    if (!existingProduct) {
+      return res.status(404).json({ message: 'Producto no encontrado.' })
+    }
+
+    // Verificar que el usuario está autenticado
+    const userId = req.auth?.userId
+    if (!userId) {
+      return res
+        .status(401)
+        .json({ message: 'Debes estar autenticado para realizar esta acción.' })
+    }
+
+    // Verificar que el usuario es el propietario del producto
+    if ((existingProduct as any).user_id !== userId) {
+      return res
+        .status(403)
+        .json({ message: 'No tienes permiso para actualizar este producto.' })
+    }
+
+    // Si se está actualizando una fecha específica, verificar que existe
+    if (selectedDateId) {
+      const [tourDate] = await db
+        .select()
+        .from(TourDates)
+        .where(eq(TourDates.id, selectedDateId))
+
+      if (!tourDate) {
+        return res
+          .status(404)
+          .json({ message: 'Fecha del tour no encontrada.' })
+      }
+
+      // Verificar que la fecha pertenece a este tour
+      if (tourDate.tour_id !== productId) {
+        return res
+          .status(400)
+          .json({ message: 'La fecha seleccionada no pertenece a este tour.' })
+      }
+
+      // Si se está actualizando max_people, verificar que no sea menor que people_booked
+      if (updateData.max_people !== undefined) {
+        const maxPeople = parseInt(updateData.max_people)
+        if (maxPeople < tourDate.people_booked) {
+          return res.status(400).json({
+            message: `El máximo de personas no puede ser menor que las reservas actuales (${tourDate.people_booked}).`,
+          })
+        }
+      }
+    }
+
+    // Actualizar producto en la base de datos
+    const updatedProduct = await updateProductService(productId, updateData)
+
+    // Obtener la fecha actualizada si se modificó
+    let updatedTourDate = null
+    if (selectedDateId) {
+      ;[updatedTourDate] = await db
+        .select()
+        .from(TourDates)
+        .where(eq(TourDates.id, selectedDateId))
+    }
+
+    // Preparar respuesta
+    const response = {
+      product: updatedProduct,
+      ...(updatedTourDate ? { tourDate: updatedTourDate } : {}),
+    }
+
+    res.status(200).json(response)
+  } catch (error: any) {
+    const status = error.status || 400
+    const message =
+      error.message ||
+      'Ocurrió un error al actualizar el producto. Verifica los datos ingresados.'
+    console.error('Error en updateProduct:', error)
     res.status(status).json({ message })
   }
 }
