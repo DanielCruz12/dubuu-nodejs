@@ -182,12 +182,12 @@ export const updateProduct = async (req: Request, res: Response) => {
       return res.status(404).json({ message: 'Producto no encontrado.' })
     }
 
-    // Verificar que el usuario está autenticado
-    const userId = req.auth?.userId
+    // Verificar que el usuario está en el body
+    const userId = req.body.user_id
     if (!userId) {
       return res
-        .status(401)
-        .json({ message: 'Debes estar autenticado para realizar esta acción.' })
+        .status(400)
+        .json({ message: 'El ID del usuario es requerido.' })
     }
 
     // Verificar que el usuario es el propietario del producto
