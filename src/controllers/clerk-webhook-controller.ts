@@ -60,6 +60,8 @@ export const handleWebHook = async (req: Request, res: Response) => {
           body: {
             email: email_addresses[0].email_address,
             id,
+            //* Clerk user image
+            image_url: evt.data.image_url || '',
             first_name: `${first_name}`,
             last_name: `${last_name}`,
             username,
@@ -81,6 +83,7 @@ export const handleWebHook = async (req: Request, res: Response) => {
             body: {
               email: email_addresses[0].email_address,
               first_name,
+              image_url: evt.data.image_url || '',
               last_name,
               username,
             },

@@ -13,7 +13,7 @@ export const Users = pgTable('users', {
   id: text().primaryKey().notNull(),
   username: varchar({ length: 255 }).notNull(),
   email: varchar({ length: 255 }).notNull(),
-
+  image_url: text().default(''),
   bank_name: varchar({ length: 255 }),
   account_number: varchar({ length: 50 }), //cuenta en donde quiere que se le deposite
   account_type: text({ enum: ['Ahorro', 'Corriente'] }).default('Ahorro'),
