@@ -12,7 +12,7 @@ import {
 export const Rentals = pgTable('rentals', {
   product_id: uuid()
     .primaryKey()
-    .references(() => Products.id)
+    .references(() => Products.id, { onDelete: 'cascade' })
     .notNull(),
 
   brand: text('brand').notNull(),
@@ -26,8 +26,13 @@ export const Rentals = pgTable('rentals', {
 
   pickup_location: text('pickup_location').notNull(),
   max_delivery_distance_km: integer('max_delivery_distance_km').default(15), // Ej. 15km máximo
-  base_delivery_fee: decimal('base_delivery_fee', { precision: 10, scale: 2 }).default('2.00'),
-  fee_per_km: decimal('fee_per_km', { precision: 10, scale: 2 }).default('1.00'),
+  base_delivery_fee: decimal('base_delivery_fee', {
+    precision: 10,
+    scale: 2,
+  }).default('2.00'),
+  fee_per_km: decimal('fee_per_km', { precision: 10, scale: 2 }).default(
+    '1.00',
+  ),
   offers_delivery: boolean('offers_delivery').default(false),
 
   /**
@@ -59,11 +64,7 @@ export const Rentals = pgTable('rentals', {
 
   available_from: date('available_from').notNull(),
   available_until: date('available_until').notNull(),
-
   is_available: boolean('is_available').default(true),
-  is_approved: boolean('is_approved').default(false), //admin part
-  is_live: boolean('is_live').default(true), // user host part
-
   fuel_type: text({
     enum: ['gasoline', 'diesel', 'electric', 'hybrid'],
   }).notNull(),

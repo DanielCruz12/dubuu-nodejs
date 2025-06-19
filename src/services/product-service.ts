@@ -15,6 +15,7 @@ import {
 } from '../handlers/generic-get-product'
 import { getTourById } from '../handlers/get-tour'
 import { getRentalById } from '../handlers/get-rental'
+import { createRentalHandler } from '../handlers/create-rental'
 
 export const getProductsService = async (req: Request) => {
   const limit = parseInt(req.query.limit as string) || 10
@@ -269,9 +270,9 @@ export const createProductService = async (productData: any) => {
         await createTourHandler(productData, newProduct.id)
         break
 
-      // case 'rentals':
-      //   await createRentalHandler(productData, newProduct.id)
-      //   break
+      case 'rental':
+        await createRentalHandler(productData, newProduct.id)
+        break
 
       default:
         throw new Error(

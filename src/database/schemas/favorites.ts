@@ -6,8 +6,8 @@ export const Favorites = pgTable('favorites', {
   id: uuid().primaryKey().notNull().defaultRandom(),
   user_id: text()
     .notNull()
-    .references(() => Users.id),
+    .references(() => Users.id, { onDelete: 'cascade' }),
   product_id: uuid()
     .notNull()
-    .references(() => Products.id),
+    .references(() => Products.id, { onDelete: 'cascade' }),
 })

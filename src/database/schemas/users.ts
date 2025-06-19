@@ -27,7 +27,7 @@ export const Users = pgTable('users', {
   zip_code: text('zip_code'),
 
   phone_number: varchar({ length: 50 }),
-  role_id: uuid().references(() => Roles.id),
+  role_id: uuid().references(() => Roles.id, { onDelete: 'cascade' }),
   created_at: timestamp().notNull().defaultNow(),
   updated_at: timestamp().notNull().defaultNow(),
 })

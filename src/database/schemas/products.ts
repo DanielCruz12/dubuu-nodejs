@@ -19,7 +19,7 @@ export const Products = pgTable('products', {
   id: uuid().primaryKey().defaultRandom().notNull(),
   name: varchar({ length: 155 }).notNull(),
   user_id: text()
-    .references(() => Users.id)
+    .references(() => Users.id, { onDelete: 'cascade' })
     .notNull(),
   description: text().notNull(),
   price: decimal({ precision: 10, scale: 2 }).notNull(),

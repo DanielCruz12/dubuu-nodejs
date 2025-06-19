@@ -4,7 +4,7 @@ import { Users } from './users'
 export const Comments = pgTable('comments', {
   id: uuid().primaryKey().defaultRandom().notNull(),
   user_id: text()
-    .references(() => Users.id)
+    .references(() => Users.id, { onDelete: 'cascade' })
     .notNull(),
   comment: text().notNull(),
   created_at: timestamp().notNull().defaultNow(),

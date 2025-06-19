@@ -15,18 +15,12 @@ const router = express.Router()
 
 router.get('/', getProducts)
 router.get('/:id', getProductById)
-router.get('/user/:id', requireAuth(), getProductsByUserId)
+router.get('/user/:id', getProductsByUserId)
 router.get('/usersimplified/:id', requireAuth(), getProductsByUserIdSimplified)
 
 router.post(
   '/',
-  upload.fields([
-    { name: 'images', maxCount: 10 },
-    { name: 'banner', maxCount: 1 },
-    { name: 'files', maxCount: 5 },
-    { name: 'videos', maxCount: 3 },
-  ]),
-  requireAuth(),
+
   createProduct,
 )
 

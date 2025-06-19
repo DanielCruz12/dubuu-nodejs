@@ -4,7 +4,7 @@ import { integer, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core'
 export const Tours = pgTable('tours', {
   product_id: uuid()
     .primaryKey()
-    .references(() => Products.id)
+    .references(() => Products.id, { onDelete: 'cascade' })
     .notNull(),
   departure_point: text('departure_point').notNull().default(''),
 
@@ -23,7 +23,7 @@ export const Tours = pgTable('tours', {
 export const TourDates = pgTable('tour_dates', {
   id: uuid().primaryKey().defaultRandom(),
   tour_id: uuid()
-    .references(() => Tours.product_id)
+    .references(() => Tours.product_id, { onDelete: 'cascade' })
     .notNull(),
   date: timestamp('date', { withTimezone: true }).notNull(),
   max_people: integer('max_people').notNull(),

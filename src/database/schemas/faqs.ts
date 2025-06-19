@@ -7,12 +7,12 @@ export const Faqs = pgTable('faqs', {
   question: text().notNull(),
   answer: text().notNull(),
   user_id: text()
-  .references(() => Users.id)
-  .notNull(),
-  product_id: uuid()
-    .references(() => Products.id)
+    .references(() => Users.id, { onDelete: 'cascade' })
     .notNull(),
-    
+  product_id: uuid()
+    .references(() => Products.id, { onDelete: 'cascade' })
+    .notNull(),
+
   created_at: timestamp().notNull().defaultNow(),
   updated_at: timestamp().notNull().defaultNow(),
 })

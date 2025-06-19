@@ -5,22 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1748318028674,
-      "tag": "0000_zippy_wong",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1750130381658,
-      "tag": "0001_bumpy_human_cannonball",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1750132166089,
-      "tag": "0002_friendly_black_panther",
+      "when": 1750375019980,
+      "tag": "0000_mighty_thunderbolts",
       "breakpoints": true
     }
   ]
