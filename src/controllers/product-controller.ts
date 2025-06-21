@@ -87,8 +87,6 @@ export const getProductsByUserIdSimplified = async (
   }
 }
 
-// Crear producto (ahora siempre con archivos)
-// Crear producto (ahora siempre con archivos)
 export const createProduct = async (req: Request, res: Response) => {
   try {
     const productData = { ...req.body }
@@ -157,6 +155,9 @@ export const createProduct = async (req: Request, res: Response) => {
         productData.videos = uploadedVideos
       }
     }
+
+    console.log('=== DEBUG: productData antes de enviar al service ===')
+    console.log(JSON.stringify(productData, null, 2))
 
     const product = await createProductService(productData)
     res.status(201).json(product)
