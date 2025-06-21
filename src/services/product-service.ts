@@ -215,7 +215,7 @@ export const createProductService = async (productData: any) => {
     videos = [],
     banner = '',
     is_approved = false,
-    is_active,
+    is_active = true,
   } = productData
 
   // Validaciones generales

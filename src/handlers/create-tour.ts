@@ -15,6 +15,7 @@ export const createTourHandler = async (data: any, productId: string) => {
     amenities = [],
     lat,
     long,
+    packing_list = [], // ← AGREGAR ESTA LÍNEA
   } = data
 
   // ✅ Parsear campos que vienen como JSON strings
@@ -22,6 +23,7 @@ export const createTourHandler = async (data: any, productId: string) => {
   let parsedItinerary = itinerary
   let parsedExpenses = expenses
   let parsedAmenities = amenities
+  let parsedPackingList = packing_list
 
   try {
     // Parsear available_dates si es string
@@ -32,6 +34,13 @@ export const createTourHandler = async (data: any, productId: string) => {
     // Parsear itinerary si es string
     if (typeof itinerary === 'string') {
       parsedItinerary = JSON.parse(itinerary)
+    }
+
+    // Parsear packing_list si es string
+    if (typeof packing_list === 'string') {
+      parsedPackingList = JSON.parse(packing_list)
+    } else {
+      parsedPackingList = packing_list
     }
 
     // Parsear expenses si es string
@@ -89,7 +98,7 @@ export const createTourHandler = async (data: any, productId: string) => {
     duration: numericDuration,
     expenses: parsedExpenses,
     difficulty,
-    packing_list: [],
+    packing_list: parsedPackingList,
     lat: numericLat.toString(),
     long: numericLong.toString(),
   })
