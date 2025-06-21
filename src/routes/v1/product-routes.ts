@@ -21,6 +21,12 @@ router.get('/usersimplified/:id', requireAuth(), getProductsByUserIdSimplified)
 router.post(
   '/',
 
+  upload.fields([
+    { name: 'images', maxCount: 10 },
+    { name: 'banner', maxCount: 1 },
+    { name: 'files', maxCount: 5 },
+    { name: 'videos', maxCount: 3 },
+  ]),
   createProduct,
 )
 
