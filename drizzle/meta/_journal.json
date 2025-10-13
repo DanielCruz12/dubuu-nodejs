@@ -8,6 +8,13 @@
       "when": 1750375019980,
       "tag": "0000_mighty_thunderbolts",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1751993520969,
+      "tag": "0001_flimsy_gauntlet",
+      "breakpoints": true
     }
   ]
 }

@@ -15,3 +15,5 @@ export {
   TargetProductAudiences,
   ProductAmenitiesProducts,
 } from './product-catalogs'
+
+export * from './blog';
