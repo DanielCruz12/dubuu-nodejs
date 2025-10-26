@@ -1,6 +1,4 @@
 import 'dotenv/config'
-import fs from 'fs'
-import path from 'path'
 import { type Config, defineConfig } from 'drizzle-kit'
 
 export default defineConfig({
@@ -19,4 +17,5 @@ export default defineConfig({
   },
   strict: true,
   verbose: true,
+  schemaFilter: ['public'],
 }) satisfies Config

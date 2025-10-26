@@ -1,4 +1,3 @@
-import cors from 'cors'
 import dotenv from 'dotenv'
 import bodyParser from 'body-parser'
 import { apiRoutes } from './routes/v1'
@@ -11,14 +10,6 @@ import { handleWompiWebhook } from './controllers/wompi-webhook-controller'
 dotenv.config()
 
 const app = express()
-
-app.use(
-  cors({
-    origin: process.env.FRONTEND_URL,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-  }),
-)
 
 app.post(
   '/api/webhooks',
