@@ -17,11 +17,13 @@ import { favoritesRoutes } from './favorite-routes'
 import { contactRoutes } from './contact-routes'
 import { exchangeRoutes } from './exchangeRoutes'
 import blogRoutes from './blog-routes'
+import { panelRoutes } from './panel-routes'
 
 const router = express.Router()
 
 router.use('/ratings', ratingRoutes)
 router.use('/users', requireAuth(), userRoutes)
+router.use('/panel', panelRoutes)
 router.use(
   '/payments',
   requireAuth(),

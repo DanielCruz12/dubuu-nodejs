@@ -6,13 +6,15 @@ const swaggerOptions = {
   definition: {
     openapi: "3.0.0",
     info: {
-      title: "User API",
+      title: "Dubuu API",
       version: "1.0.0",
-      description: "API documentation",
+      description: "Documentación de la API REST. Base URL: `/api/v1`",
     },
-    servers: [{ url: "http://localhost:3000" }],
+    servers: [
+      { url: "http://localhost:3002", description: "Desarrollo" },
+    ],
   },
-  apis: ["./src/routes/v1/*.ts"], // Path to API docs
+  apis: ["./src/routes/v1/*.ts"],
 };
 
 const swaggerSpec = swaggerJsdoc(swaggerOptions);

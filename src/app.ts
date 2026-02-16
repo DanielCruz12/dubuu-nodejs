@@ -4,12 +4,16 @@ import { apiRoutes } from './routes/v1'
 import { setupSwagger } from './swagger'
 import wompiRouter from './routes/v1/payment-routes'
 import express, { Request, Response } from 'express'
+import { clerkMiddleware } from '@clerk/express'
 import { handleWebHook } from './controllers/clerk-webhook-controller'
 import { handleWompiWebhook } from './controllers/wompi-webhook-controller'
 
 dotenv.config()
 
 const app = express()
+
+// Clerk debe ir antes de cualquier ruta que use getAuth o requireAuth
+app.use(clerkMiddleware())
 
 app.post(
   '/api/webhooks',
