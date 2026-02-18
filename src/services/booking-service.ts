@@ -189,10 +189,18 @@ export const createBookingService = async (bookingData: any) => {
     'tickets',
   ]
 
-  console.log(bookingData)
+  // Normalizar tour_date_id: el cliente puede enviar array o "datetime" como alias
+  let tourDateId = bookingData.tour_date_id ?? bookingData.datetime
+  if (Array.isArray(tourDateId)) {
+    tourDateId = tourDateId[0] ?? null
+  }
+  if (!tourDateId) {
+    const error: any = new Error('tour_date_id o datetime es obligatorio.')
+    error.statusCode = 400
+    throw error
+  }
 
   const missingFields = requiredFields.filter((field) => !bookingData[field])
-
   if (missingFields.length > 0) {
     const error: any = new Error(
       `Los campos ${missingFields.join(', ')} son obligatorios.`,
@@ -206,7 +214,15 @@ export const createBookingService = async (bookingData: any) => {
     const [newBooking] = await db
       .insert(Bookings)
       .values({
-        ...bookingData,
+        user_id: bookingData.user_id,
+        product_id: bookingData.product_id,
+        status: bookingData.status ?? 'in-process',
+        is_live: bookingData.is_live ?? null,
+        tickets: bookingData.tickets,
+        total: String(bookingData.total),
+        tour_date_id: tourDateId,
+        paymentMethod: bookingData.paymentMethod,
+        idTransaccion: bookingData.idTransaccion,
       })
       .returning()
 
@@ -215,12 +231,12 @@ export const createBookingService = async (bookingData: any) => {
       .set({
         people_booked: sql`${TourDates.people_booked} + ${bookingData.tickets}`,
       })
-      .where(eq(TourDates.id, bookingData.tour_date_id))
+      .where(eq(TourDates.id, tourDateId))
 
     return newBooking
   } catch (error: any) {
     if (!error.statusCode) {
-      const err: any = new Error('Error al obtener las reservas del usuario.')
+      const err: any = new Error('Error al crear la reserva.')
       err.statusCode = 500
       throw err
     }
