@@ -36,14 +36,8 @@ export const getUserBookingsService = async (userId: string) => {
       .where(eq(Bookings.user_id, userId))
       .execute()
 
-    if (!bookings) {
-      const error: any = new Error('El usuario no tiene reservas.')
-      error.statusCode = 404
-      console.error('404:', error.message)
-      throw error
-    }
-
-    return bookings
+    // Sin reservas es válido: devolver array vacío, no error
+    return Array.isArray(bookings) ? bookings : []
   } catch (error: any) {
     if (!error.statusCode) {
       const err: any = new Error('Error al obtener las reservas del usuario.')
