@@ -27,7 +27,7 @@ const router = express.Router()
  *             properties:
  *               userId: { type: string, description: "ID del host (dueño de los productos)" }
  *     responses:
- *       200: { description: Resumen del panel }
+ *       200: { description: "Resumen del panel" }
  *       400: { description: "userId es obligatorio en el body" }
  *   post:
  *     tags: [Panel]
@@ -43,7 +43,7 @@ const router = express.Router()
  *             properties:
  *               userId: { type: string }
  *     responses:
- *       200: { description: Resumen del panel }
+ *       200: { description: "Resumen del panel" }
  *       400: { description: "userId es obligatorio en el body" }
  */
 router.get('/summary', getSummary)
@@ -66,7 +66,7 @@ router.post('/summary', getSummary)
  *             properties:
  *               userId: { type: string, description: "ID del host" }
  *     responses:
- *       200: { description: total, changeFromLastMonth, thisMonth, lastMonth }
+ *       200: { description: "total, changeFromLastMonth, thisMonth, lastMonth" }
  *       400: { description: "userId es obligatorio en el body" }
  *   post:
  *     tags: [Panel]
@@ -81,7 +81,7 @@ router.post('/summary', getSummary)
  *             properties:
  *               userId: { type: string }
  *     responses:
- *       200: { description: total, changeFromLastMonth, thisMonth, lastMonth }
+ *       200: { description: "total, changeFromLastMonth, thisMonth, lastMonth" }
  */
 router.get('/active-reservations', getActiveReservations)
 router.post('/active-reservations', getActiveReservations)
@@ -103,7 +103,7 @@ router.post('/active-reservations', getActiveReservations)
  *             properties:
  *               userId: { type: string, description: "ID del host" }
  *     responses:
- *       200: { description: total, percentChangeFromLastYear, thisYearTotal, lastYearTotal }
+ *       200: { description: "total, percentChangeFromLastYear, thisYearTotal, lastYearTotal" }
  *       400: { description: "userId es obligatorio en el body" }
  *   post:
  *     tags: [Panel]
@@ -118,7 +118,7 @@ router.post('/active-reservations', getActiveReservations)
  *             properties:
  *               userId: { type: string }
  *     responses:
- *       200: { description: total, percentChangeFromLastYear, ... }
+ *       200: { description: "total, percentChangeFromLastYear, etc." }
  */
 router.get('/revenue', getRevenue)
 router.post('/revenue', getRevenue)
@@ -140,7 +140,7 @@ router.post('/revenue', getRevenue)
  *             properties:
  *               userId: { type: string, description: "ID del host" }
  *     responses:
- *       200: { description: { count } }
+ *       200: { description: "Objeto con count" }
  *       400: { description: "userId es obligatorio en el body" }
  *   post:
  *     tags: [Panel]
@@ -155,7 +155,7 @@ router.post('/revenue', getRevenue)
  *             properties:
  *               userId: { type: string }
  *     responses:
- *       200: { description: { count } }
+ *       200: { description: "Objeto con count" }
  */
 router.get('/frequent-travelers', getFrequentTravelers)
 router.post('/frequent-travelers', getFrequentTravelers)
@@ -177,7 +177,7 @@ router.post('/frequent-travelers', getFrequentTravelers)
  *             properties:
  *               userId: { type: string, description: "ID del host" }
  *     responses:
- *       200: { description: Array de { month, label, year, count } }
+ *       200: { description: "Array de objetos con month, label, year, count" }
  *       400: { description: "userId es obligatorio en el body" }
  *   post:
  *     tags: [Panel]
@@ -192,7 +192,7 @@ router.post('/frequent-travelers', getFrequentTravelers)
  *             properties:
  *               userId: { type: string }
  *     responses:
- *       200: { description: Array por mes }
+ *       200: { description: "Array por mes" }
  */
 router.get('/activity', getActivity)
 router.post('/activity', getActivity)
@@ -214,7 +214,7 @@ router.post('/activity', getActivity)
  *             properties:
  *               userId: { type: string, description: "ID del host" }
  *     responses:
- *       200: { description: { reservations[], total } }
+ *       200: { description: "Objeto con reservations (array) y total" }
  *       400: { description: "userId es obligatorio en el body" }
  *   post:
  *     tags: [Panel]
@@ -229,7 +229,7 @@ router.post('/activity', getActivity)
  *             properties:
  *               userId: { type: string }
  *     responses:
- *       200: { description: { reservations[], total } }
+ *       200: { description: "Objeto con reservations (array) y total" }
  */
 router.get('/upcoming', getUpcoming)
 router.post('/upcoming', getUpcoming)
