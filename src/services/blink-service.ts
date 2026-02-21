@@ -7,16 +7,25 @@ import axios, { AxiosInstance } from 'axios'
 
 const BLINK_GRAPHQL_URL = process.env.BLINK_GRAPHQL_URL || 'https://api.blink.sv/graphql'
 
+/** Normaliza BLINK_API_KEY: si el valor es "BLINK_API_KEY=blink_xxx", devuelve solo "blink_xxx". */
+function normalizeBlinkApiKey(raw: string | undefined): string {
+  const s = (raw ?? '').trim()
+  if (!s) return ''
+  const prefix = 'BLINK_API_KEY='
+  if (s.startsWith(prefix)) return s.slice(prefix.length).trim()
+  return s
+}
+
 function getBlinkClient(): AxiosInstance {
-  const apiKey = process.env.BLINK_API_KEY
-  if (!apiKey?.trim()) {
+  const apiKey = normalizeBlinkApiKey(process.env.BLINK_API_KEY)
+  if (!apiKey) {
     throw new Error('BLINK_API_KEY no está configurada. Configúrala para enviar pagos con Blink.')
   }
   return axios.create({
     baseURL: BLINK_GRAPHQL_URL,
     headers: {
       'Content-Type': 'application/json',
-      'X-API-KEY': apiKey.trim(),
+      'X-API-KEY': apiKey,
     },
   })
 }
