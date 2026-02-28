@@ -15,14 +15,14 @@ const getUserId = (req: Request): string | null => {
 }
 
 /**
- * GET /panel/summary
- * Resumen completo del panel (todas las métricas en una respuesta).
+ * GET /panel/summary/:userId
+ * Resumen completo del panel (todas las métricas en una respuesta). userId por parámetro de ruta (como bookings).
  */
 export const getSummary = async (req: Request, res: Response) => {
   try {
-    const userId = getUserId(req)
+    const userId = req.params?.userId?.trim()
     if (!userId) {
-      return res.status(400).json({ message: 'userId es obligatorio en el body' })
+      return res.status(400).json({ message: 'userId required' })
     }
     const summary = await getPanelSummary(userId)
     return res.status(200).json(summary)

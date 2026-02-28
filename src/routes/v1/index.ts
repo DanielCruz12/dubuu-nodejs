@@ -23,7 +23,7 @@ const router = express.Router()
 
 router.use('/ratings', ratingRoutes)
 router.use('/users', requireAuth(), userRoutes)
-router.use('/panel', panelRoutes)
+router.use('/panel', requireAuth(), requireRole(['host', 'admin']), panelRoutes)
 router.use(
   '/payments',
   requireAuth(),
@@ -31,7 +31,7 @@ router.use(
   paymentAccountRoutes,
 )
 router.use('/bookings', requireAuth(), bookingsRoutes)
-router.use('/contact', requireAuth() ,contactRoutes)
+router.use('/contact', requireAuth(), contactRoutes)
 router.use('/products', productRoutes)
 router.use('/favorite', requireAuth(), favoritesRoutes)
 router.use('/product-amenities', productAmenitiesRoutes)

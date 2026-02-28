@@ -12,42 +12,21 @@ const router = express.Router()
 
 /**
  * @openapi
- * /api/v1/panel/summary:
+ * /api/v1/panel/summary/{userId}:
  *   get:
  *     tags: [Panel]
  *     summary: Resumen completo del panel
- *     description: Devuelve todas las métricas del panel en una sola respuesta (reservas activas, ingresos, viajeros frecuentes, actividad 12 meses, próximas reservas). Datos del host que tiene productos listados.
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [userId]
- *             properties:
- *               userId: { type: string, description: "ID del host (dueño de los productos)" }
+ *     description: Devuelve todas las métricas del panel en una sola respuesta. userId en la URL (igual que bookings).
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema: { type: string, description: "ID del host (Clerk, ej. user_2wNKuz5STr5t4gumnybinqspjIV)" }
  *     responses:
  *       200: { description: "Resumen del panel" }
- *       400: { description: "userId es obligatorio en el body" }
- *   post:
- *     tags: [Panel]
- *     summary: Resumen completo del panel (POST)
- *     description: Igual que GET. userId en body.
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [userId]
- *             properties:
- *               userId: { type: string }
- *     responses:
- *       200: { description: "Resumen del panel" }
- *       400: { description: "userId es obligatorio en el body" }
+ *       400: { description: "userId required" }
  */
-router.get('/summary', getSummary)
-router.post('/summary', getSummary)
+router.get('/summary/:userId', getSummary)
 
 /**
  * @openapi

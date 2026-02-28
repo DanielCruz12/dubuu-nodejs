@@ -7,6 +7,7 @@ import express, { Request, Response } from 'express'
 import { clerkMiddleware } from '@clerk/express'
 import { handleWebHook } from './controllers/clerk-webhook-controller'
 import { handleWompiWebhook } from './controllers/wompi-webhook-controller'
+import { handleBlinkWebhook } from './controllers/blink-webhook-controller'
 
 dotenv.config()
 
@@ -30,6 +31,7 @@ app.use(
 )
 
 app.post('/webhook-wompi', handleWompiWebhook)
+app.post('/webhook-blink', handleBlinkWebhook)
 
 setupSwagger(app)
 app.use(express.json())
