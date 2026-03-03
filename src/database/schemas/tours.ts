@@ -6,17 +6,8 @@ export const Tours = pgTable('tours', {
     .primaryKey()
     .references(() => Products.id, { onDelete: 'cascade' })
     .notNull(),
-  departure_point: text('departure_point').notNull().default(''),
-
-  expenses: text('expenses').array().default(['']),
-  difficulty: text('difficulty').notNull().default(''),
-  packing_list: text('packing_list').array().default(['']),
-
   lat: text('lat').notNull().default(''),
   long: text('long').notNull().default(''),
-  itinerary: text('itinerary').array().default(['']),
-  highlight: text().notNull().default(''),
-  included: text().notNull().default(''),
   duration: integer().notNull(),
 })
 

@@ -1,5 +1,6 @@
 import { db } from '../database/db'
 import { ProductAmenitiesProducts, TourDates, Tours } from '../database/schemas'
+import { saveTourWithTranslations } from '../services/tour-translations-service'
 
 export const createTourHandler = async (data: any, productId: string) => {
   const {
@@ -88,19 +89,21 @@ export const createTourHandler = async (data: any, productId: string) => {
     return parsed
   })
 
-  // ✅ Insertar en tabla tours
   await db.insert(Tours).values({
     product_id: productId,
-    departure_point,
-    itinerary: parsedItinerary,
-    highlight,
-    included,
     duration: numericDuration,
-    expenses: parsedExpenses,
-    difficulty,
-    packing_list: parsedPackingList,
     lat: numericLat.toString(),
     long: numericLong.toString(),
+  })
+
+  await saveTourWithTranslations(productId, {
+    departure_point,
+    difficulty,
+    highlight,
+    included,
+    itinerary: parsedItinerary,
+    packing_list: parsedPackingList,
+    expenses: parsedExpenses,
   })
 
   const tourDateRows = parsedDates.map((date) => ({

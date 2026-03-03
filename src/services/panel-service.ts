@@ -1,7 +1,13 @@
 import { and, eq, gte, lte, sql } from 'drizzle-orm'
 import { db } from '../database/db'
 import { Bookings } from '../database/schemas/bookings'
-import { Products, TourDates, Users } from '../database/schemas'
+import {
+  ProductTranslations,
+  Products,
+  TourDates,
+  Users,
+} from '../database/schemas'
+import { getDefaultLocale } from './translation-service'
 
 /**
  * Todas las queries del panel se basan en las reservas (bookings) de los
@@ -256,6 +262,7 @@ export const getReservationActivityLast12Months = async (userId: string) => {
 export const getUpcomingReservations = async (
   userId: string,
   limit: number = 10,
+  locale?: string,
 ) => {
   if (!userId) {
     const err: any = new Error('userId es obligatorio.')
@@ -263,12 +270,13 @@ export const getUpcomingReservations = async (
     throw err
   }
 
+  const lang = locale ?? getDefaultLocale()
   const now = new Date()
 
   const rows = await db
     .select({
       id: Bookings.id,
-      product_name: Products.name,
+      product_name: ProductTranslations.name,
       product_banner: Products.banner,
       product_id: Products.id,
       total: Bookings.total,
@@ -280,6 +288,13 @@ export const getUpcomingReservations = async (
     })
     .from(Bookings)
     .innerJoin(Products, eq(Bookings.product_id, Products.id))
+    .innerJoin(
+      ProductTranslations,
+      and(
+        eq(Bookings.product_id, ProductTranslations.product_id),
+        eq(ProductTranslations.locale, lang),
+      ),
+    )
     .leftJoin(TourDates, eq(Bookings.tour_date_id, TourDates.id))
     .leftJoin(Users, eq(Bookings.user_id, Users.id))
     .where(
@@ -316,13 +331,13 @@ export const getUpcomingReservations = async (
 /**
  * Resumen completo del panel en una sola llamada.
  */
-export const getPanelSummary = async (userId: string) => {
+export const getPanelSummary = async (userId: string, locale?: string) => {
   const [active, revenue, travelers, activity, upcoming] = await Promise.all([
     getActiveReservationsCount(userId),
     getTotalRevenue(userId),
     getFrequentTravelersCount(userId),
     getReservationActivityLast12Months(userId),
-    getUpcomingReservations(userId, 4),
+    getUpcomingReservations(userId, 4, locale),
   ])
 
   return {

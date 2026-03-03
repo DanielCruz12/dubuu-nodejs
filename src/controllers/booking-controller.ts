@@ -11,7 +11,8 @@ import {
 export const getUserBookings = async (req: Request, res: Response) => {
   try {
     const { userId } = req.params
-    const result = await getUserBookingsService(userId)
+    const locale = req.query.locale as string | undefined
+    const result = await getUserBookingsService(userId, locale)
     res.status(200).json(result)
   } catch (error: any) {
     const statusCode = error.statusCode || 500
@@ -27,9 +28,11 @@ export const getBookingsByUserIdProductId = async (
 ) => {
   try {
     const { userId, productId } = req.params
+    const locale = req.query.locale as string | undefined
     const bookings = await getBookingsByUserIdProductIdService(
       userId,
       productId,
+      locale,
     )
     res.status(200).json(bookings)
   } catch (error: any) {
@@ -43,7 +46,8 @@ export const getBookingsByUserIdProductId = async (
 export const getBookingById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params
-    const booking = await getBookingByIdService(id)
+    const locale = req.query.locale as string | undefined
+    const booking = await getBookingByIdService(id, locale)
     if (!booking) {
       return res.status(404).json({ message: 'Booking not found' })
     }

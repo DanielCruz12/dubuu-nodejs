@@ -42,7 +42,8 @@ export const getProducts = async (req: Request, res: Response) => {
 export const getProductById = async (req: Request, res: Response) => {
   try {
     const productId = req.params.id
-    const product = await getProductByIdService(productId)
+    const locale = req.query.locale as string | undefined
+    const product = await getProductByIdService(productId, locale)
     if (!product) {
       return res.status(404).json({ message: 'Producto no encontrado.' })
     }
@@ -59,7 +60,8 @@ export const getProductById = async (req: Request, res: Response) => {
 export const getProductsByUserId = async (req: Request, res: Response) => {
   try {
     const userId = req.params.id
-    const products = await getProductsByUserIdService(userId)
+    const locale = req.query.locale as string | undefined
+    const products = await getProductsByUserIdService(userId, locale)
     res.status(200).json(products)
   } catch (error: any) {
     const status = error.status || 500
@@ -76,7 +78,8 @@ export const getProductsByUserIdSimplified = async (
 ) => {
   try {
     const userId = req.params.id
-    const products = await getProductsByUserIdSimplifiedService(userId)
+    const locale = req.query.locale as string | undefined
+    const products = await getProductsByUserIdSimplifiedService(userId, locale)
     res.status(200).json(products)
   } catch (error: any) {
     const status = error.status || 500

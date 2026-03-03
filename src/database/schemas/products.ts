@@ -17,13 +17,10 @@ import { Users } from './users'
 
 export const Products = pgTable('products', {
   id: uuid().primaryKey().defaultRandom().notNull(),
-  name: varchar({ length: 155 }).notNull(),
   user_id: text()
     .references(() => Users.id, { onDelete: 'cascade' })
     .notNull(),
-  description: text().notNull(),
   price: decimal({ precision: 10, scale: 2 }).notNull(),
-  address: text().notNull().default(''),
   country: varchar({ length: 100 }).notNull(),
   is_approved: boolean().notNull().default(false),
   images: text('images').array().default(['']),

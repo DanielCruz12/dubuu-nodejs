@@ -1,19 +1,30 @@
-import { eq, sql } from 'drizzle-orm'
+import { and, eq, sql } from 'drizzle-orm'
 import { db } from '../database/db'
 import { Bookings } from '../database/schemas/bookings'
 import { statusCodes } from '../utils'
-import { Products, TourDates, Users } from '../database/schemas'
+import {
+  ProductTranslations,
+  Products,
+  TourDates,
+  Users,
+} from '../database/schemas'
+import { getDefaultLocale } from './translation-service'
 import moment from 'moment'
 import 'moment/locale/es'
 import { decrypt } from '../utils/crypto'
 
 // 🔍 Obtener todas las reservas de un usuario (para getUserBookings)
-export const getUserBookingsService = async (userId: string) => {
+export const getUserBookingsService = async (
+  userId: string,
+  locale?: string,
+) => {
   if (!userId) {
     const error: any = new Error('El ID del usuario es obligatorio.')
     error.statusCode = 400
     throw error
   }
+
+  const lang = locale ?? getDefaultLocale()
 
   try {
     const bookings = await db
@@ -23,15 +34,22 @@ export const getUserBookingsService = async (userId: string) => {
         total: Bookings.total,
         status: Bookings.status,
         product_id: Bookings.product_id,
-        product_name: Products.name,
+        product_name: ProductTranslations.name,
         product_banner: Products.banner,
-        product_address: Products.address,
+        product_address: ProductTranslations.address,
         country: Products.country,
-        product_description: Products.description,
+        product_description: ProductTranslations.description,
         tourDate: TourDates.date,
       })
       .from(Bookings)
       .leftJoin(Products, eq(Bookings.product_id, Products.id))
+      .leftJoin(
+        ProductTranslations,
+        and(
+          eq(Bookings.product_id, ProductTranslations.product_id),
+          eq(ProductTranslations.locale, lang),
+        ),
+      )
       .leftJoin(TourDates, eq(Bookings.tour_date_id, TourDates.id))
       .where(eq(Bookings.user_id, userId))
       .execute()
@@ -51,6 +69,7 @@ export const getUserBookingsService = async (userId: string) => {
 export const getBookingsByUserIdProductIdService = async (
   userId: string,
   productId: string,
+  locale?: string,
 ) => {
   if (!productId) {
     const error: any = new Error('El ID del producto es obligatorio.')
@@ -66,8 +85,9 @@ export const getBookingsByUserIdProductIdService = async (
     throw error
   }
 
+  const lang = locale ?? getDefaultLocale()
+
   try {
-    // Check if the user exists in the product table
     const userExistsInProduct = await db
       .select()
       .from(Products)
@@ -83,7 +103,6 @@ export const getBookingsByUserIdProductIdService = async (
       throw error
     }
 
-    // Retrieve bookings with user and product relations
     const bookings = await db
       .select({
         bookingId: Bookings.id,
@@ -97,13 +116,20 @@ export const getBookingsByUserIdProductIdService = async (
           email: Users.email,
         },
         status: Bookings.status,
-        name: Products.name,
+        name: ProductTranslations.name,
         tourDate: TourDates.date,
         createdAt: Bookings.created_at,
         updatedAt: Bookings.updated_at,
       })
       .from(Bookings)
       .leftJoin(Products, eq(Bookings.product_id, Products.id))
+      .leftJoin(
+        ProductTranslations,
+        and(
+          eq(Bookings.product_id, ProductTranslations.product_id),
+          eq(ProductTranslations.locale, lang),
+        ),
+      )
       .leftJoin(TourDates, eq(Bookings.tour_date_id, TourDates.id))
       .leftJoin(Users, eq(Bookings.user_id, Users.id))
       .where(eq(Bookings.product_id, productId))
@@ -136,12 +162,17 @@ export const getBookingsByUserIdProductIdService = async (
   }
 }
 
-export const getBookingByIdService = async (bookingId: string) => {
+export const getBookingByIdService = async (
+  bookingId: string,
+  locale?: string,
+) => {
   if (!bookingId) {
     const error: any = new Error('El ID de la reserva es obligatorio.')
     error.statusCode = 400
     throw error
   }
+
+  const lang = locale ?? getDefaultLocale()
 
   try {
     const [bookingData] = await db
@@ -152,12 +183,19 @@ export const getBookingByIdService = async (bookingId: string) => {
         productId: Bookings.product_id,
         userFirstName: Users.first_name,
         userLastName: Users.last_name,
-        productName: Products.name,
+        productName: ProductTranslations.name,
         tourDate: TourDates.date,
       })
       .from(Bookings)
       .leftJoin(Users, eq(Bookings.user_id, Users.id))
       .leftJoin(Products, eq(Bookings.product_id, Products.id))
+      .leftJoin(
+        ProductTranslations,
+        and(
+          eq(Bookings.product_id, ProductTranslations.product_id),
+          eq(ProductTranslations.locale, lang),
+        ),
+      )
       .leftJoin(TourDates, eq(Bookings.tour_date_id, TourDates.id))
       .where(eq(Bookings.id, bookingId))
       .limit(1)

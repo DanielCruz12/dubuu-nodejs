@@ -11,9 +11,10 @@ export const createPost = async (req: Request, res: Response) => {
   }
 }
 
-export const getPosts = async (_req: Request, res: Response) => {
+export const getPosts = async (req: Request, res: Response) => {
   try {
-    const posts = await blogService.getPosts()
+    const locale = req.query.locale as string | undefined
+    const posts = await blogService.getPosts(locale)
     res.status(200).json(posts)
   } catch (error) {
     res.status(500).json({ message: 'Error getting posts', error })
@@ -22,7 +23,8 @@ export const getPosts = async (_req: Request, res: Response) => {
 
 export const getPostById = async (req: Request, res: Response) => {
   try {
-    const post = await blogService.getPostById(req.params.id)
+    const locale = req.query.locale as string | undefined
+    const post = await blogService.getPostById(req.params.id, locale)
     res.status(200).json(post)
   } catch (error) {
     res.status(500).json({ message: 'Error getting post', error })
@@ -57,9 +59,10 @@ export const createCategory = async (req: Request, res: Response) => {
   }
 }
 
-export const getCategories = async (_req: Request, res: Response) => {
+export const getCategories = async (req: Request, res: Response) => {
   try {
-    const categories = await blogService.getCategories()
+    const locale = req.query.locale as string | undefined
+    const categories = await blogService.getCategories(locale)
     res.status(200).json(categories)
   } catch (error) {
     res.status(500).json({ message: 'Error getting categories', error })
@@ -124,7 +127,8 @@ export const createSection = async (req: Request, res: Response) => {
 
 export const getSections = async (req: Request, res: Response) => {
   try {
-    const sections = await blogService.getSections(req.params.postId)
+    const locale = req.query.locale as string | undefined
+    const sections = await blogService.getSections(req.params.postId, locale)
     res.status(200).json(sections)
   } catch (error) {
     res.status(500).json({ message: 'Error getting sections', error })

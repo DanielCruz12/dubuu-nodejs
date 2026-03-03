@@ -1,100 +1,170 @@
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import { db } from '../database/db'
-import { Faqs } from '../database/schemas'
+import { Faqs, FaqTranslations } from '../database/schemas'
 import { statusCodes } from '../utils'
+import { getDefaultLocale } from './translation-service'
+import { saveFaqWithTranslations } from './faq-translations-service'
 
-// ✅ Obtener todas las FAQs
-export const getFaqsService = async () => {
+export const getFaqsService = async (locale?: string) => {
+  const lang = locale ?? getDefaultLocale()
   try {
-    const faqs = await db.select().from(Faqs).execute()
-    return faqs
+    const rows = await db
+      .select({
+        id: Faqs.id,
+        user_id: Faqs.user_id,
+        product_id: Faqs.product_id,
+        created_at: Faqs.created_at,
+        updated_at: Faqs.updated_at,
+        question: FaqTranslations.question,
+        answer: FaqTranslations.answer,
+      })
+      .from(Faqs)
+      .innerJoin(
+        FaqTranslations,
+        and(
+          eq(Faqs.id, FaqTranslations.faq_id),
+          eq(FaqTranslations.locale, lang),
+        ),
+      )
+      .execute()
+    return rows
   } catch (error) {
     console.error('500:', statusCodes[500], '-', error)
     throw new Error('Error al obtener las FAQs.')
   }
 }
 
-// ✅ Obtener FAQs por ID de producto
-export const getFaqsByProductIdService = async (productId: string) => {
+export const getFaqsByProductIdService = async (
+  productId: string,
+  locale?: string,
+) => {
   if (!productId) {
     console.error('400:', statusCodes[400])
     throw new Error('El ID del producto es obligatorio.')
   }
-
+  const lang = locale ?? getDefaultLocale()
   try {
-    const faqs = await db
-      .select()
+    const rows = await db
+      .select({
+        id: Faqs.id,
+        user_id: Faqs.user_id,
+        product_id: Faqs.product_id,
+        created_at: Faqs.created_at,
+        updated_at: Faqs.updated_at,
+        question: FaqTranslations.question,
+        answer: FaqTranslations.answer,
+      })
       .from(Faqs)
+      .innerJoin(
+        FaqTranslations,
+        and(
+          eq(Faqs.id, FaqTranslations.faq_id),
+          eq(FaqTranslations.locale, lang),
+        ),
+      )
       .where(eq(Faqs.product_id, productId))
       .execute()
-
-    return faqs
+    return rows
   } catch (error) {
     console.error('500:', statusCodes[500], '-', error)
     throw new Error('Error al obtener FAQs del producto.')
   }
 }
 
-// ✅ Obtener una FAQ por ID
-export const getFaqByIdService = async (faqId: string) => {
+export const getFaqByIdService = async (faqId: string, locale?: string) => {
   if (!faqId) {
     console.error('400:', statusCodes[400])
     throw new Error('El ID de la FAQ es obligatorio.')
   }
-
+  const lang = locale ?? getDefaultLocale()
   try {
-    const [faq] = await db
-      .select()
+    const [row] = await db
+      .select({
+        id: Faqs.id,
+        user_id: Faqs.user_id,
+        product_id: Faqs.product_id,
+        created_at: Faqs.created_at,
+        updated_at: Faqs.updated_at,
+        question: FaqTranslations.question,
+        answer: FaqTranslations.answer,
+      })
       .from(Faqs)
+      .innerJoin(
+        FaqTranslations,
+        and(
+          eq(Faqs.id, FaqTranslations.faq_id),
+          eq(FaqTranslations.locale, lang),
+        ),
+      )
       .where(eq(Faqs.id, faqId))
       .limit(1)
       .execute()
-
-    return faq || null
+    return row || null
   } catch (error) {
     console.error('500:', statusCodes[500], '-', error)
     throw new Error('Error al obtener la FAQ.')
   }
 }
 
-// ✅ Crear nueva FAQ
 export const createFaqService = async (data: any) => {
-  const { product_id, question, answer } = data
+  const { product_id, question, answer, user_id } = data
 
-  if (!product_id || !question || !answer) {
+  if (!product_id || !question || !answer || !user_id) {
     console.error('400:', statusCodes[400])
-    throw new Error('Campos requeridos: product_id, question y answer.')
+    throw new Error('Campos requeridos: product_id, user_id, question y answer.')
   }
 
   try {
-    const [newFaq] = await db.insert(Faqs).values(data).returning()
-    return newFaq
+    const [newFaq] = await db
+      .insert(Faqs)
+      .values({ product_id, user_id })
+      .returning()
+    if (!newFaq) throw new Error('Error al crear la FAQ.')
+
+    await saveFaqWithTranslations(newFaq.id, { question, answer })
+    const created = await getFaqByIdService(newFaq.id)
+    return created ?? newFaq
   } catch (error) {
     console.error('500:', statusCodes[500], '-', error)
     throw new Error('Error al crear la FAQ.')
   }
 }
 
-// ✅ Actualizar una FAQ
 export const updateFaqService = async (faqId: string, data: any) => {
   if (!faqId) {
     console.error('400:', statusCodes[400])
     throw new Error('El ID de la FAQ es obligatorio.')
   }
 
+  const { question, answer } = data
   try {
-    const [updatedFaq] = await db
-      .update(Faqs)
-      .set(data)
-      .where(eq(Faqs.id, faqId))
-      .returning()
-
-    if (!updatedFaq) {
-      console.error('404:', statusCodes[404])
-      throw new Error('FAQ no encontrada para actualizar.')
+    if (question !== undefined || answer !== undefined) {
+      const defaultLocale = getDefaultLocale()
+      const [currentTr] = await db
+        .select({
+          question: FaqTranslations.question,
+          answer: FaqTranslations.answer,
+        })
+        .from(FaqTranslations)
+        .where(
+          and(
+            eq(FaqTranslations.faq_id, faqId),
+            eq(FaqTranslations.locale, defaultLocale),
+          ),
+        )
+        .limit(1)
+      await saveFaqWithTranslations(faqId, {
+        question: question ?? currentTr?.question ?? '',
+        answer: answer ?? currentTr?.answer ?? '',
+      })
     }
 
-    return updatedFaq
+    const [updatedFaq] = await db
+      .select()
+      .from(Faqs)
+      .where(eq(Faqs.id, faqId))
+      .limit(1)
+    return (await getFaqByIdService(faqId)) ?? updatedFaq ?? null
   } catch (error) {
     console.error('500:', statusCodes[500], '-', error)
     throw new Error('Error al actualizar la FAQ.')

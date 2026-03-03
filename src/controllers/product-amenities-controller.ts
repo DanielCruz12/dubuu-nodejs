@@ -11,7 +11,8 @@ import {
 // Obtener todos los amenities
 export const getProductAmenities = async (req: Request, res: Response) => {
   try {
-    const productAmenities = await getProductAmenitiesService(req)
+    const locale = req.query.locale as string | undefined
+    const productAmenities = await getProductAmenitiesService(req, locale)
     res.status(200).json(productAmenities)
   } catch (error: any) {
     const message = statusCodes[error.status] || 'Internal Server Error'
@@ -23,7 +24,8 @@ export const getProductAmenities = async (req: Request, res: Response) => {
 export const getProductAmenityById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params
-    const productAmenity = await getProductAmenityByIdService(id)
+    const locale = req.query.locale as string | undefined
+    const productAmenity = await getProductAmenityByIdService(id, locale)
     if (!productAmenity) {
       return res.status(404).json({ message: 'Product Amenity not found' })
     }

@@ -13,7 +13,8 @@ export const getTargetProductAudiences = async (
   res: Response,
 ) => {
   try {
-    const audiences = await getTargetProductAudiencesService(req)
+    const locale = req.query.locale as string | undefined
+    const audiences = await getTargetProductAudiencesService(req, locale)
     res.status(200).json(audiences)
   } catch (error: any) {
     const message = statusCodes[error.status] || 'Internal Server Error'
@@ -27,7 +28,8 @@ export const getTargetProductAudienceById = async (
 ) => {
   try {
     const { id } = req.params
-    const audience = await getTargetProductAudienceByIdService(id)
+    const locale = req.query.locale as string | undefined
+    const audience = await getTargetProductAudienceByIdService(id, locale)
     if (!audience) {
       return res.status(404).json({ message: 'Target Audience not found' })
     }

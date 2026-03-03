@@ -1,3 +1,31 @@
+CREATE TABLE "blog_category_translations" (
+	"category_id" uuid NOT NULL,
+	"locale" varchar(10) NOT NULL,
+	"name" text NOT NULL,
+	"description" text,
+	"updated_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "blog_category_translations_category_id_locale_pk" PRIMARY KEY("category_id","locale")
+);
+--> statement-breakpoint
+CREATE TABLE "blog_post_translations" (
+	"post_id" uuid NOT NULL,
+	"locale" varchar(10) NOT NULL,
+	"title" text NOT NULL,
+	"slug" text NOT NULL,
+	"author_bio" text,
+	"updated_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "blog_post_translations_post_id_locale_pk" PRIMARY KEY("post_id","locale")
+);
+--> statement-breakpoint
+CREATE TABLE "blog_section_translations" (
+	"section_id" uuid NOT NULL,
+	"locale" varchar(10) NOT NULL,
+	"title" text NOT NULL,
+	"content" text NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "blog_section_translations_section_id_locale_pk" PRIMARY KEY("section_id","locale")
+);
+--> statement-breakpoint
 CREATE TABLE "bookings" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" text,
@@ -21,10 +49,17 @@ CREATE TABLE "comments" (
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "faqs" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+CREATE TABLE "faq_translations" (
+	"faq_id" uuid NOT NULL,
+	"locale" varchar(10) NOT NULL,
 	"question" text NOT NULL,
 	"answer" text NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "faq_translations_faq_id_locale_pk" PRIMARY KEY("faq_id","locale")
+);
+--> statement-breakpoint
+CREATE TABLE "faqs" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" text NOT NULL,
 	"product_id" uuid NOT NULL,
 	"created_at" timestamp DEFAULT now() NOT NULL,
@@ -37,22 +72,29 @@ CREATE TABLE "favorites" (
 	"product_id" uuid NOT NULL
 );
 --> statement-breakpoint
+CREATE TABLE "locales" (
+	"code" varchar(10) PRIMARY KEY NOT NULL,
+	"name" varchar(100) NOT NULL,
+	"is_default" boolean DEFAULT false NOT NULL,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
 CREATE TABLE "payment_accounts" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_id" text NOT NULL,
-	"bank_name" text NOT NULL,
-	"account_type" text NOT NULL,
-	"account_number" text NOT NULL,
-	"holder_name" text NOT NULL,
-	"email" text NOT NULL,
+	"bank_name" text,
+	"account_type" text,
+	"account_number" text,
+	"holder_name" text,
+	"email" text,
 	"payment_method" text NOT NULL,
+	"blink_wallet_address" text,
 	"created_at" timestamp DEFAULT now()
 );
 --> statement-breakpoint
 CREATE TABLE "product_amenities" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"name" varchar(155) NOT NULL,
-	"description" text NOT NULL,
 	"category_id" uuid NOT NULL,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL
@@ -64,30 +106,60 @@ CREATE TABLE "product_amenities_products" (
 	CONSTRAINT "product_amenities_products_product_id_product_amenity_id_pk" PRIMARY KEY("product_id","product_amenity_id")
 );
 --> statement-breakpoint
-CREATE TABLE "product_categories" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+CREATE TABLE "product_amenity_translations" (
+	"amenity_id" uuid NOT NULL,
+	"locale" varchar(10) NOT NULL,
 	"name" varchar(155) NOT NULL,
 	"description" text NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "product_amenity_translations_amenity_id_locale_pk" PRIMARY KEY("amenity_id","locale")
+);
+--> statement-breakpoint
+CREATE TABLE "product_categories" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"product_type_id" uuid NOT NULL,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "product_types" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+CREATE TABLE "product_category_translations" (
+	"category_id" uuid NOT NULL,
+	"locale" varchar(10) NOT NULL,
+	"name" varchar(155) NOT NULL,
+	"description" text NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "product_category_translations_category_id_locale_pk" PRIMARY KEY("category_id","locale")
+);
+--> statement-breakpoint
+CREATE TABLE "product_translations" (
+	"product_id" uuid NOT NULL,
+	"locale" varchar(10) NOT NULL,
+	"name" varchar(155) NOT NULL,
+	"description" text NOT NULL,
+	"address" text DEFAULT '' NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "product_translations_product_id_locale_pk" PRIMARY KEY("product_id","locale")
+);
+--> statement-breakpoint
+CREATE TABLE "product_type_translations" (
+	"product_type_id" uuid NOT NULL,
+	"locale" varchar(10) NOT NULL,
 	"name" varchar(100) NOT NULL,
 	"description" text NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "product_type_translations_product_type_id_locale_pk" PRIMARY KEY("product_type_id","locale")
+);
+--> statement-breakpoint
+CREATE TABLE "product_types" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "products" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"name" varchar(155) NOT NULL,
 	"user_id" text NOT NULL,
-	"description" text NOT NULL,
 	"price" numeric(10, 2) NOT NULL,
-	"address" text DEFAULT '' NOT NULL,
 	"country" varchar(100) NOT NULL,
 	"is_approved" boolean DEFAULT false NOT NULL,
 	"images" text[] DEFAULT '{""}',
@@ -149,10 +221,17 @@ CREATE TABLE "user_roles" (
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "target_product_audiences" (
-	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+CREATE TABLE "target_product_audience_translations" (
+	"audience_id" uuid NOT NULL,
+	"locale" varchar(10) NOT NULL,
 	"name" varchar(155) NOT NULL,
 	"description" text NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "target_product_audience_translations_audience_id_locale_pk" PRIMARY KEY("audience_id","locale")
+);
+--> statement-breakpoint
+CREATE TABLE "target_product_audiences" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
@@ -165,17 +244,24 @@ CREATE TABLE "tour_dates" (
 	"people_booked" integer DEFAULT 0 NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE "tours" (
-	"product_id" uuid PRIMARY KEY NOT NULL,
+CREATE TABLE "tour_translations" (
+	"product_id" uuid NOT NULL,
+	"locale" varchar(10) NOT NULL,
 	"departure_point" text DEFAULT '' NOT NULL,
-	"expenses" text[] DEFAULT '{""}',
 	"difficulty" text DEFAULT '' NOT NULL,
-	"packing_list" text[] DEFAULT '{""}',
-	"lat" text DEFAULT '' NOT NULL,
-	"long" text DEFAULT '' NOT NULL,
-	"itinerary" text[] DEFAULT '{""}',
 	"highlight" text DEFAULT '' NOT NULL,
 	"included" text DEFAULT '' NOT NULL,
+	"itinerary" text[] DEFAULT '{}',
+	"packing_list" text[] DEFAULT '{}',
+	"expenses" text[] DEFAULT '{}',
+	"updated_at" timestamp DEFAULT now() NOT NULL,
+	CONSTRAINT "tour_translations_product_id_locale_pk" PRIMARY KEY("product_id","locale")
+);
+--> statement-breakpoint
+CREATE TABLE "tours" (
+	"product_id" uuid PRIMARY KEY NOT NULL,
+	"lat" text DEFAULT '' NOT NULL,
+	"long" text DEFAULT '' NOT NULL,
 	"duration" integer NOT NULL
 );
 --> statement-breakpoint
@@ -202,11 +288,8 @@ CREATE TABLE "users" (
 --> statement-breakpoint
 CREATE TABLE "blog_categories" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"name" text NOT NULL,
-	"description" text,
 	"created_at" timestamp DEFAULT now() NOT NULL,
-	"updated_at" timestamp DEFAULT now() NOT NULL,
-	CONSTRAINT "blog_categories_name_unique" UNIQUE("name")
+	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "blog_post_likes" (
@@ -220,25 +303,19 @@ CREATE TABLE "blog_post_likes" (
 --> statement-breakpoint
 CREATE TABLE "blog_posts" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"title" text NOT NULL,
-	"slug" text NOT NULL,
 	"reading_time_minutes" integer DEFAULT 3 NOT NULL,
-	"author_bio" text,
 	"cover_image" text,
 	"is_approved" boolean DEFAULT false NOT NULL,
 	"is_published" boolean DEFAULT false NOT NULL,
 	"user_id" text NOT NULL,
 	"category_id" uuid,
 	"created_at" timestamp DEFAULT now() NOT NULL,
-	"updated_at" timestamp DEFAULT now() NOT NULL,
-	CONSTRAINT "blog_posts_slug_unique" UNIQUE("slug")
+	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "blog_sections" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"post_id" uuid NOT NULL,
-	"title" text NOT NULL,
-	"content" text NOT NULL,
 	"images" text[] DEFAULT '{""}',
 	"videos" text[] DEFAULT '{""}',
 	"order" integer DEFAULT 0 NOT NULL,
@@ -246,10 +323,14 @@ CREATE TABLE "blog_sections" (
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
+ALTER TABLE "blog_category_translations" ADD CONSTRAINT "blog_category_translations_category_id_blog_categories_id_fk" FOREIGN KEY ("category_id") REFERENCES "public"."blog_categories"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "blog_post_translations" ADD CONSTRAINT "blog_post_translations_post_id_blog_posts_id_fk" FOREIGN KEY ("post_id") REFERENCES "public"."blog_posts"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "blog_section_translations" ADD CONSTRAINT "blog_section_translations_section_id_blog_sections_id_fk" FOREIGN KEY ("section_id") REFERENCES "public"."blog_sections"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "bookings" ADD CONSTRAINT "bookings_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "bookings" ADD CONSTRAINT "bookings_product_id_products_id_fk" FOREIGN KEY ("product_id") REFERENCES "public"."products"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "bookings" ADD CONSTRAINT "bookings_tour_date_id_tour_dates_id_fk" FOREIGN KEY ("tour_date_id") REFERENCES "public"."tour_dates"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "comments" ADD CONSTRAINT "comments_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "faq_translations" ADD CONSTRAINT "faq_translations_faq_id_faqs_id_fk" FOREIGN KEY ("faq_id") REFERENCES "public"."faqs"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "faqs" ADD CONSTRAINT "faqs_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "faqs" ADD CONSTRAINT "faqs_product_id_products_id_fk" FOREIGN KEY ("product_id") REFERENCES "public"."products"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "favorites" ADD CONSTRAINT "favorites_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
@@ -258,7 +339,11 @@ ALTER TABLE "payment_accounts" ADD CONSTRAINT "payment_accounts_user_id_users_id
 ALTER TABLE "product_amenities" ADD CONSTRAINT "product_amenities_category_id_product_categories_id_fk" FOREIGN KEY ("category_id") REFERENCES "public"."product_categories"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "product_amenities_products" ADD CONSTRAINT "product_amenities_products_product_id_products_id_fk" FOREIGN KEY ("product_id") REFERENCES "public"."products"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "product_amenities_products" ADD CONSTRAINT "product_amenities_products_product_amenity_id_product_amenities_id_fk" FOREIGN KEY ("product_amenity_id") REFERENCES "public"."product_amenities"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "product_amenity_translations" ADD CONSTRAINT "product_amenity_translations_amenity_id_product_amenities_id_fk" FOREIGN KEY ("amenity_id") REFERENCES "public"."product_amenities"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "product_categories" ADD CONSTRAINT "product_categories_product_type_id_product_types_id_fk" FOREIGN KEY ("product_type_id") REFERENCES "public"."product_types"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "product_category_translations" ADD CONSTRAINT "product_category_translations_category_id_product_categories_id_fk" FOREIGN KEY ("category_id") REFERENCES "public"."product_categories"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "product_translations" ADD CONSTRAINT "product_translations_product_id_products_id_fk" FOREIGN KEY ("product_id") REFERENCES "public"."products"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "product_type_translations" ADD CONSTRAINT "product_type_translations_product_type_id_product_types_id_fk" FOREIGN KEY ("product_type_id") REFERENCES "public"."product_types"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "products" ADD CONSTRAINT "products_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "products" ADD CONSTRAINT "products_target_product_audience_id_target_product_audiences_id_fk" FOREIGN KEY ("target_product_audience_id") REFERENCES "public"."target_product_audiences"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "products" ADD CONSTRAINT "products_product_category_id_product_categories_id_fk" FOREIGN KEY ("product_category_id") REFERENCES "public"."product_categories"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
@@ -266,7 +351,9 @@ ALTER TABLE "products" ADD CONSTRAINT "products_product_type_id_product_types_id
 ALTER TABLE "ratings" ADD CONSTRAINT "ratings_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "ratings" ADD CONSTRAINT "ratings_product_id_products_id_fk" FOREIGN KEY ("product_id") REFERENCES "public"."products"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "rentals" ADD CONSTRAINT "rentals_product_id_products_id_fk" FOREIGN KEY ("product_id") REFERENCES "public"."products"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "target_product_audience_translations" ADD CONSTRAINT "target_product_audience_translations_audience_id_target_product_audiences_id_fk" FOREIGN KEY ("audience_id") REFERENCES "public"."target_product_audiences"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "tour_dates" ADD CONSTRAINT "tour_dates_tour_id_tours_product_id_fk" FOREIGN KEY ("tour_id") REFERENCES "public"."tours"("product_id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "tour_translations" ADD CONSTRAINT "tour_translations_product_id_tours_product_id_fk" FOREIGN KEY ("product_id") REFERENCES "public"."tours"("product_id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "tours" ADD CONSTRAINT "tours_product_id_products_id_fk" FOREIGN KEY ("product_id") REFERENCES "public"."products"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "users" ADD CONSTRAINT "users_role_id_user_roles_id_fk" FOREIGN KEY ("role_id") REFERENCES "public"."user_roles"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "blog_post_likes" ADD CONSTRAINT "blog_post_likes_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint

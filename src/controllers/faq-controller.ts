@@ -11,7 +11,8 @@ import { statusCodes } from '../utils'
 
 export const getFaqs = async (req: Request, res: Response) => {
   try {
-    const faqs = await getFaqsService()
+    const locale = req.query.locale as string | undefined
+    const faqs = await getFaqsService(locale)
     res.status(200).json(faqs)
   } catch (error: any) {
     const message = statusCodes[error.status] || 'Internal Server Error'
@@ -22,7 +23,8 @@ export const getFaqs = async (req: Request, res: Response) => {
 export const getFaqsByProductId = async (req: Request, res: Response) => {
   try {
     const { productId } = req.params
-    const faqs = await getFaqsByProductIdService(productId)
+    const locale = req.query.locale as string | undefined
+    const faqs = await getFaqsByProductIdService(productId, locale)
     if (!faqs || faqs.length === 0) {
       return res.status(404).json({ message: 'No FAQs found for this product' })
     }
@@ -35,7 +37,8 @@ export const getFaqsByProductId = async (req: Request, res: Response) => {
 export const getFaqById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params
-    const faq = await getFaqByIdService(id)
+    const locale = req.query.locale as string | undefined
+    const faq = await getFaqByIdService(id, locale)
     if (!faq) {
       return res.status(404).json({ message: 'FAQ not found' })
     }

@@ -10,7 +10,8 @@ import {
 
 export const getProductCategories = async (req: Request, res: Response) => {
   try {
-    const categories = await getProductCategoriesService()
+    const locale = req.query.locale as string | undefined
+    const categories = await getProductCategoriesService(locale)
     res.status(200).json(categories)
   } catch (error: any) {
     const message = statusCodes[error.status] || 'Internal Server Error'
@@ -21,7 +22,8 @@ export const getProductCategories = async (req: Request, res: Response) => {
 export const getProductCategoryById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params
-    const category = await getProductCategoryByIdService(id)
+    const locale = req.query.locale as string | undefined
+    const category = await getProductCategoryByIdService(id, locale)
     if (!category) {
       return res.status(404).json({ message: 'Category not found' })
     }

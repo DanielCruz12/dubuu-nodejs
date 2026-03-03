@@ -6,8 +6,6 @@ export const BlogSections = pgTable('blog_sections', {
   post_id: uuid()
     .notNull()
     .references(() => BlogPosts.id, { onDelete: 'cascade' }),
-  title: text().notNull(),
-  content: text().notNull(),
   images: text().array().default(['']),
   videos: text().array().default(['']),
   order: integer().notNull().default(0),

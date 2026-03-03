@@ -1,13 +1,25 @@
 import { db } from '../database/db'
 import { Request } from 'express'
-import { Products, Ratings, TourDates } from '../database/schemas'
+import {
+  ProductTranslations,
+  Products,
+  Ratings,
+  TourDates,
+} from '../database/schemas'
 import {
   ProductAmenitiesProducts,
   ProductCategories,
   ProductTypes,
   TargetProductAudiences,
 } from '../database/schemas/product-catalogs'
+import {
+  ProductCategoryTranslations,
+  ProductTypeTranslations,
+  TargetProductAudienceTranslations,
+} from '../database/schemas'
 import { eq, and, ilike, gte, lte, desc, or, lt } from 'drizzle-orm'
+import { getDefaultLocale } from './translation-service'
+import { getProductTypeByIdService } from './product-type-service'
 import { createTourHandler } from '../handlers/create-tour'
 import {
   getBaseProductInfo,
@@ -16,10 +28,12 @@ import {
 import { getTourById } from '../handlers/get-tour'
 import { getRentalById } from '../handlers/get-rental'
 import { createRentalHandler } from '../handlers/create-rental'
+import { saveProductWithTranslations } from './product-translations-service'
 
 export const getProductsService = async (req: Request) => {
   const limit = parseInt(req.query.limit as string) || 10
-  const cursor = req.query.cursor as string | undefined // Fecha del último producto cargado
+  const cursor = req.query.cursor as string | undefined
+  const locale = (req.query.locale as string) ?? getDefaultLocale()
 
   const productTypeName =
     req.query.product_type?.toString().toLowerCase() || 'tours'
@@ -34,18 +48,17 @@ export const getProductsService = async (req: Request) => {
   const is_active = req.query.is_active
     ? req.query.is_active === 'true'
     : undefined
-
   const minRating = req.query.min_rating
     ? parseFloat(req.query.min_rating as string)
     : undefined
 
   const whereConditions = [
-    ilike(ProductTypes.name, productTypeName),
+    ilike(ProductTypeTranslations.name, productTypeName),
     ...(search
       ? [
           or(
-            ilike(Products.name, `%${search}%`),
-            ilike(Products.description, `%${search}%`),
+            ilike(ProductTranslations.name, `%${search}%`),
+            ilike(ProductTranslations.description, `%${search}%`),
           ),
         ]
       : []),
@@ -59,70 +72,94 @@ export const getProductsService = async (req: Request) => {
     ...(minRating !== undefined
       ? [gte(Products.average_rating, String(minRating))]
       : []),
-    // Si hay un cursor, añadimos la condición para obtener registros con created_at menor que el cursor
     ...(cursor ? [lt(Products.created_at, new Date(cursor))] : []),
   ]
 
-  // Obtenemos un elemento extra para saber si hay más resultados
   const products = await db
     .select({
-      product: {
-        ...Products,
-        product_category: {
-          id: ProductCategories.id,
-          name: ProductCategories.name,
-        },
-        target_audience: {
-          id: TargetProductAudiences.id,
-          name: TargetProductAudiences.name,
-        },
-        product_type: {
-          id: ProductTypes.id,
-          name: ProductTypes.name,
-        },
-        average_rating: Products.average_rating,
-        total_reviews: Products.total_reviews,
+      id: Products.id,
+      name: ProductTranslations.name,
+      description: ProductTranslations.description,
+      address: ProductTranslations.address,
+      user_id: Products.user_id,
+      price: Products.price,
+      country: Products.country,
+      is_approved: Products.is_approved,
+      images: Products.images,
+      files: Products.files,
+      videos: Products.videos,
+      banner: Products.banner,
+      is_active: Products.is_active,
+      average_rating: Products.average_rating,
+      total_reviews: Products.total_reviews,
+      created_at: Products.created_at,
+      updated_at: Products.updated_at,
+      product_category_id: Products.product_category_id,
+      target_product_audience_id: Products.target_product_audience_id,
+      product_type_id: Products.product_type_id,
+      product_category: {
+        id: ProductCategories.id,
+        name: ProductCategoryTranslations.name,
+      },
+      target_audience: {
+        id: TargetProductAudiences.id,
+        name: TargetProductAudienceTranslations.name,
+      },
+      product_type: {
+        id: ProductTypes.id,
+        name: ProductTypeTranslations.name,
       },
     })
     .from(Products)
+    .innerJoin(
+      ProductTranslations,
+      and(
+        eq(Products.id, ProductTranslations.product_id),
+        eq(ProductTranslations.locale, locale),
+      ),
+    )
     .leftJoin(Ratings, eq(Products.id, Ratings.product_id))
     .innerJoin(
       ProductCategories,
       eq(Products.product_category_id, ProductCategories.id),
     )
     .innerJoin(
+      ProductCategoryTranslations,
+      and(
+        eq(ProductCategories.id, ProductCategoryTranslations.category_id),
+        eq(ProductCategoryTranslations.locale, locale),
+      ),
+    )
+    .innerJoin(
       TargetProductAudiences,
       eq(Products.target_product_audience_id, TargetProductAudiences.id),
     )
+    .innerJoin(
+      TargetProductAudienceTranslations,
+      and(
+        eq(TargetProductAudiences.id, TargetProductAudienceTranslations.audience_id),
+        eq(TargetProductAudienceTranslations.locale, locale),
+      ),
+    )
     .innerJoin(ProductTypes, eq(Products.product_type_id, ProductTypes.id))
+    .innerJoin(
+      ProductTypeTranslations,
+      and(
+        eq(ProductTypes.id, ProductTypeTranslations.product_type_id),
+        eq(ProductTypeTranslations.locale, locale),
+      ),
+    )
     .where(and(...whereConditions))
-    .groupBy(
-      Products.id,
-      ProductCategories.id,
-      TargetProductAudiences.id,
-      ProductTypes.id,
-    )
-    .orderBy(
-      desc(Products.created_at), // Ordenamos primero por fecha de creación descendente
-      desc(Products.id), // Desempate por ID para productos con la misma fecha
-    )
-    .limit(limit + 1) // Pedimos un elemento extra para saber si hay más
+    .orderBy(desc(Products.created_at), desc(Products.id))
+    .limit(limit + 1)
 
-  // Verificamos si hay más resultados
   const hasMore = products.length > limit
-  // Eliminamos el elemento extra si existe
   const results = hasMore ? products.slice(0, limit) : products
-
-  // Obtenemos la fecha de creación del último producto para usarla como cursor
   const nextCursor =
-    results.length > 0
-      ? results[results.length - 1].product.created_at.toISOString()
-      : null
+    results.length > 0 ? results[results.length - 1].created_at.toISOString() : null
 
   return {
-    data: results.map((p) => ({
-      ...p.product,
-    })),
+    data: results,
     pagination: {
       hasMore,
       nextCursor,
@@ -130,72 +167,78 @@ export const getProductsService = async (req: Request) => {
     },
   }
 }
-export const getProductByIdService = async (productId: string) => {
-  const baseProduct = await getBaseProductInfo(productId)
+export const getProductByIdService = async (
+  productId: string,
+  locale?: string,
+) => {
+  const baseProduct = await getBaseProductInfo(productId, locale)
   if (!baseProduct) return null
 
   const category = baseProduct.product_type.name
 
   switch (category) {
     case 'tours':
-      return await getTourById(productId, baseProduct)
+      return await getTourById(productId, baseProduct, locale)
     case 'rental':
       return await getRentalById(productId, baseProduct)
   }
 }
 
-export const getProductsByUserIdService = async (userId: string) => {
-  // Paso 1: obtenemos solo los IDs de productos del usuario
+export const getProductsByUserIdService = async (
+  userId: string,
+  locale?: string,
+) => {
   const productIds = await db
     .select({ id: Products.id })
     .from(Products)
     .where(eq(Products.user_id, userId))
 
-  // Paso 2: usamos getBaseProductInfo y la lógica por categoría
+  const lang = locale ?? getDefaultLocale()
   const enrichedProducts = await Promise.all(
     productIds.map(async ({ id }) => {
-      const baseProduct = await getBaseProductInfo(id)
+      const baseProduct = await getBaseProductInfo(id, lang)
       if (!baseProduct) return null
 
       const category = baseProduct.product_type.name
 
       switch (category) {
         case 'tours':
-          return await getTourById(id, baseProduct)
+          return await getTourById(id, baseProduct, lang)
         case 'rental':
           return await getRentalById(id, baseProduct)
       }
     }),
   )
 
-  // Filtramos nulos por si algún producto fue eliminado o no está aprobado
   return enrichedProducts.filter(Boolean)
 }
-export const getProductsByUserIdSimplifiedService = async (userId: string) => {
-  // Paso 1: obtenemos solo los IDs de productos del usuario
+
+export const getProductsByUserIdSimplifiedService = async (
+  userId: string,
+  locale?: string,
+) => {
   const productIds = await db
     .select({ id: Products.id })
     .from(Products)
     .where(eq(Products.user_id, userId))
 
-  // Paso 2: usamos getBaseProductInfo y la lógica por categoría
+  const lang = locale ?? getDefaultLocale()
   const enrichedProducts = await Promise.all(
     productIds.map(async ({ id }) => {
-      const baseProduct = await getBaseProductInfoSimplified(id)
+      const baseProduct = await getBaseProductInfoSimplified(id, lang)
       if (!baseProduct) return null
 
       const category = baseProduct.product_type.name
 
       switch (category) {
         case 'tours':
-          return await getTourById(id, baseProduct)
+          return await getTourById(id, baseProduct, lang)
         case 'rental':
           return await getRentalById(id, baseProduct)
       }
     }),
   )
 
-  // Filtramos nulos por si algún producto fue eliminado o no está aprobado
   return enrichedProducts.filter(Boolean)
 }
 
@@ -232,11 +275,7 @@ export const createProductService = async (productData: any) => {
     throw new Error('Faltan campos obligatorios del producto.')
   }
 
-  const [type] = await db
-    .select()
-    .from(ProductTypes)
-    .where(eq(ProductTypes.id, product_type_id))
-
+  const type = await getProductTypeByIdService(product_type_id)
   if (!type) {
     throw new Error('Tipo de producto no válido.')
   }
@@ -245,11 +284,8 @@ export const createProductService = async (productData: any) => {
     const [newProduct] = await db
       .insert(Products)
       .values({
-        name,
-        description,
         price,
         user_id,
-        address,
         country,
         product_category_id,
         target_product_audience_id,
@@ -263,7 +299,7 @@ export const createProductService = async (productData: any) => {
       })
       .returning()
 
-    const typeName = type.name.toLowerCase()
+    const typeName = (type as { name: string }).name.toLowerCase()
 
     switch (typeName) {
       case 'tours':
@@ -279,6 +315,12 @@ export const createProductService = async (productData: any) => {
           `No hay manejador definido para el tipo de producto: ${typeName}`,
         )
     }
+
+    await saveProductWithTranslations(newProduct.id, {
+      name,
+      description,
+      address: address ?? '',
+    })
 
     return newProduct
   } catch (error) {
@@ -308,19 +350,12 @@ export const updateProductService = async (
       updated_at: new Date(),
     }
 
-    // Validar y agregar campos del producto base
-    if (name !== undefined) {
-      if (!name || name.trim() === '') {
-        throw new Error('El nombre del producto no puede estar vacío.')
-      }
-      productUpdateData.name = name.trim()
+    // Validar campos traducibles (se persisten en product_translations, no en products)
+    if (name !== undefined && (!name || name.trim() === '')) {
+      throw new Error('El nombre del producto no puede estar vacío.')
     }
-
-    if (description !== undefined) {
-      if (!description || description.trim() === '') {
-        throw new Error('La descripción del producto no puede estar vacía.')
-      }
-      productUpdateData.description = description.trim()
+    if (description !== undefined && (!description || description.trim() === '')) {
+      throw new Error('La descripción del producto no puede estar vacía.')
     }
 
     if (price !== undefined) {
@@ -330,11 +365,8 @@ export const updateProductService = async (
       productUpdateData.price = parseFloat(price).toFixed(2)
     }
 
-    if (address !== undefined) {
-      if (!address || address.trim() === '') {
-        throw new Error('La dirección no puede estar vacía.')
-      }
-      productUpdateData.address = address.trim()
+    if (address !== undefined && (!address || address.trim() === '')) {
+      throw new Error('La dirección no puede estar vacía.')
     }
 
     if (country !== undefined) {
@@ -407,6 +439,34 @@ export const updateProductService = async (
         throw new Error('Producto no encontrado.')
       }
       updatedProduct = product
+    }
+
+    if (name !== undefined || description !== undefined || address !== undefined) {
+      const defaultLocale = getDefaultLocale()
+      const needFallback =
+        name === undefined || description === undefined || address === undefined
+      const [currentTr] = needFallback
+        ? await db
+            .select({
+              name: ProductTranslations.name,
+              description: ProductTranslations.description,
+              address: ProductTranslations.address,
+            })
+            .from(ProductTranslations)
+            .where(
+              and(
+                eq(ProductTranslations.product_id, productId),
+                eq(ProductTranslations.locale, defaultLocale),
+              ),
+            )
+            .limit(1)
+        : []
+      const fields = {
+        name: (name ?? currentTr?.name ?? '') as string,
+        description: (description ?? currentTr?.description ?? '') as string,
+        address: (address ?? currentTr?.address ?? '') as string,
+      }
+      await saveProductWithTranslations(productId, fields)
     }
 
     return updatedProduct

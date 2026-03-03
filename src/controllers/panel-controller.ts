@@ -24,7 +24,8 @@ export const getSummary = async (req: Request, res: Response) => {
     if (!userId) {
       return res.status(400).json({ message: 'userId required' })
     }
-    const summary = await getPanelSummary(userId)
+    const locale = req.query.locale as string | undefined
+    const summary = await getPanelSummary(userId, locale)
     return res.status(200).json(summary)
   } catch (error: any) {
     const statusCode = error.statusCode ?? 500
@@ -125,7 +126,8 @@ export const getUpcoming = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'userId es obligatorio en el body' })
     }
     const limit = Math.min(Number(req.query.limit) || 10, 50)
-    const data = await getUpcomingReservations(userId, limit)
+    const locale = req.query.locale as string | undefined
+    const data = await getUpcomingReservations(userId, limit, locale)
     return res.status(200).json(data)
   } catch (error: any) {
     const statusCode = error.statusCode ?? 500

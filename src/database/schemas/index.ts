@@ -16,4 +16,18 @@ export {
   ProductAmenitiesProducts,
 } from './product-catalogs'
 
-export * from './blog';
+export * from './blog'
+
+export { Locales } from './locales'
+export {
+  ProductTranslations,
+  TourTranslations,
+  FaqTranslations,
+  BlogPostTranslations,
+  BlogSectionTranslations,
+  BlogCategoryTranslations,
+  ProductTypeTranslations,
+  ProductCategoryTranslations,
+  TargetProductAudienceTranslations,
+  ProductAmenityTranslations,
+} from './translations'
