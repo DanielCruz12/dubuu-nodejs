@@ -6,6 +6,7 @@ import { Products, TourDates, Users } from '../database/schemas'
 import moment from 'moment'
 import 'moment/locale/es'
 import { decrypt } from '../utils/crypto'
+import { BookingStatus, type BookingStatusType } from '../constants'
 
 // 🔍 Obtener todas las reservas de un usuario (para getUserBookings)
 export const getUserBookingsService = async (userId: string) => {
@@ -216,7 +217,7 @@ export const createBookingService = async (bookingData: any) => {
       .values({
         user_id: bookingData.user_id,
         product_id: bookingData.product_id,
-        status: bookingData.status ?? 'in-process',
+        status: bookingData.status ?? BookingStatus.IN_PROCESS,
         is_live: bookingData.is_live ?? null,
         tickets: bookingData.tickets,
         total: String(bookingData.total),
@@ -284,7 +285,7 @@ export const updateBookingService = async (
 
 export const updateBookingStatusByTransactionId = async (
   transactionId: string,
-  newStatus: 'completed' | 'in-process' | 'canceled',
+  newStatus: BookingStatusType,
 ) => {
   if (!transactionId) {
     const error: any = new Error('El ID de la transacción es obligatorio.')

@@ -3,7 +3,7 @@ import { Webhook } from 'svix'
 import { createUser, deleteUser, updateUser } from './user-controller'
 import { clerkClient } from '@clerk/express'
 
-export const handleWebHook = async (req: Request, res: Response) => {
+export const handleClerkWebHook = async (req: Request, res: Response) => {
   //* Retrieve the webhook secret from environment variables
   const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET
   if (!WEBHOOK_SECRET) {

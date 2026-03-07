@@ -1,6 +1,7 @@
 import { Request, Response } from 'express'
 import { createBlinkCheckout } from '../services/payment-blink-service'
 import { createBookingService } from '../services/booking-service'
+import { PaymentMethod, BookingStatus } from '../constants'
 
 /**
  * Checkout Blink: crea factura en la API de Blink y responde con
@@ -50,10 +51,10 @@ export async function handleCreateBlinkTransaction(
           tickets: bookingInput.tickets,
           total: body.total,
           tour_date_id: bookingInput.tour_date_id ?? bookingInput.datetime,
-          is_live: bookingInput.is_live ?? null,
-          paymentMethod: 'blink',
+          is_live: bookingInput.is_live ?? true,
+          paymentMethod: PaymentMethod.BLINK,
           idTransaccion: result.idTransaccion,
-          status: 'in-process',
+          status: BookingStatus.IN_PROCESS,
         })
       : null
 

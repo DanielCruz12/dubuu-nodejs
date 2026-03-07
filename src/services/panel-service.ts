@@ -2,6 +2,7 @@ import { and, eq, gte, lte, sql } from 'drizzle-orm'
 import { db } from '../database/db'
 import { Bookings } from '../database/schemas/bookings'
 import { Products, TourDates, Users } from '../database/schemas'
+import { BookingStatus } from '../constants'
 
 /**
  * Todas las queries del panel se basan en las reservas (bookings) de los
@@ -32,7 +33,7 @@ export const getActiveReservationsCount = async (userId: string) => {
     .where(
       and(
         eq(Products.user_id, userId),
-        sql`${Bookings.status} != 'canceled'`,
+        sql`${Bookings.status} != ${BookingStatus.CANCELED}`,
       ),
     )
     .execute()
@@ -44,7 +45,7 @@ export const getActiveReservationsCount = async (userId: string) => {
     .where(
       and(
         eq(Products.user_id, userId),
-        sql`${Bookings.status} != 'canceled'`,
+        sql`${Bookings.status} != ${BookingStatus.CANCELED}`,
         gte(Bookings.created_at, startOfThisMonth),
       ),
     )
@@ -57,7 +58,7 @@ export const getActiveReservationsCount = async (userId: string) => {
     .where(
       and(
         eq(Products.user_id, userId),
-        sql`${Bookings.status} != 'canceled'`,
+        sql`${Bookings.status} != ${BookingStatus.CANCELED}`,
         gte(Bookings.created_at, startOfLastMonth),
         lte(Bookings.created_at, endOfLastMonth),
       ),
@@ -102,7 +103,7 @@ export const getTotalRevenue = async (userId: string) => {
     .where(
       and(
         eq(Products.user_id, userId),
-        eq(Bookings.status, 'completed'),
+        eq(Bookings.status, BookingStatus.COMPLETED),
         gte(Bookings.created_at, startOfThisYear),
       ),
     )
@@ -117,7 +118,7 @@ export const getTotalRevenue = async (userId: string) => {
     .where(
       and(
         eq(Products.user_id, userId),
-        eq(Bookings.status, 'completed'),
+        eq(Bookings.status, BookingStatus.COMPLETED),
         gte(Bookings.created_at, startOfLastYear),
         lte(Bookings.created_at, endOfLastYear),
       ),
@@ -140,7 +141,7 @@ export const getTotalRevenue = async (userId: string) => {
     .where(
       and(
         eq(Products.user_id, userId),
-        eq(Bookings.status, 'completed'),
+        eq(Bookings.status, BookingStatus.COMPLETED),
       ),
     )
     .execute()
@@ -174,7 +175,7 @@ export const getFrequentTravelersCount = async (userId: string) => {
       and(
         eq(Products.user_id, userId),
         sql`${Bookings.user_id} is not null`,
-        sql`${Bookings.status} != 'canceled'`,
+        sql`${Bookings.status} != ${BookingStatus.CANCELED}`,
       ),
     )
     .groupBy(Bookings.user_id)
@@ -210,7 +211,7 @@ export const getReservationActivityLast12Months = async (userId: string) => {
     .where(
       and(
         eq(Products.user_id, userId),
-        sql`${Bookings.status} != 'canceled'`,
+        sql`${Bookings.status} != ${BookingStatus.CANCELED}`,
         gte(Bookings.created_at, start),
       ),
     )

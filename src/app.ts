@@ -3,11 +3,10 @@ import bodyParser from 'body-parser'
 import { apiRoutes } from './routes/v1'
 import { setupSwagger } from './swagger'
 import wompiRouter from './routes/v1/payment-routes'
+import blinkRouter from './routes/v1/blink-routes'
 import express, { Request, Response } from 'express'
 import { clerkMiddleware } from '@clerk/express'
-import { handleWebHook } from './controllers/clerk-webhook-controller'
-import { handleWompiWebhook } from './controllers/wompi-webhook-controller'
-import { handleBlinkWebhook } from './controllers/blink-webhook-controller'
+import { handleClerkWebHook } from './controllers/clerk-webhook-controller'
 
 dotenv.config()
 
@@ -19,7 +18,7 @@ app.use(clerkMiddleware())
 app.post(
   '/api/webhooks',
   bodyParser.raw({ type: 'application/json' }),
-  handleWebHook,
+  handleClerkWebHook,
 )
 
 app.use(
@@ -30,13 +29,11 @@ app.use(
   }),
 )
 
-app.post('/webhook-wompi', handleWompiWebhook)
-app.post('/webhook-blink', handleBlinkWebhook)
-
 setupSwagger(app)
 app.use(express.json())
 
 app.use('/api/v1', wompiRouter)
+app.use('/api/v1', blinkRouter)
 
 //* Define routes
 app.use('/api/v1', apiRoutes)

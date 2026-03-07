@@ -49,7 +49,7 @@ export const handleCreate3DSTransaction = async (
       monto: total,
       configuracion: {
         emailsNotificacion: email,
-        urlWebhook: `${API_URL}/webhook-wompi`,
+        urlWebhook: `${API_URL}/api/v1/webhook-wompi`,
         telefonosNotificacion: '77886116',
         notificarTransaccionCliente: true,
       },
