@@ -15,7 +15,6 @@ import { requireRole } from '../../middlewares/role-validator'
 import { paymentAccountRoutes } from './payment-account-routes'
 import { favoritesRoutes } from './favorite-routes'
 import { contactRoutes } from './contact-routes'
-import { exchangeRoutes } from './exchangeRoutes'
 import blogRoutes from './blog-routes'
 import { panelRoutes } from './panel-routes'
 
@@ -41,7 +40,6 @@ router.use('/product-audience', productAudiencesRoutes)
 router.use('/roles', rolesRoutes)
 router.use('/comments', commentsRoutes)
 router.use('/faqs', faqsRoutes)
-router.use('/exchange', exchangeRoutes)
 router.use('/blog', blogRoutes)
 
 export { router as apiRoutes }
