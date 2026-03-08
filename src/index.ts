@@ -7,7 +7,14 @@ const port = process.env.PORT || 3002
 async function main() {
   try {
     console.log('✅ Database connected')
-    const httpServer = http.createServer(app)
+    // Socket.IO debe recibir las peticiones a /socket.io antes que Express.
+    // Si pasamos solo app, Express responde 404 a /socket.io.
+    const httpServer = http.createServer((req, res) => {
+      if (req.url?.startsWith('/socket.io')) {
+        return // no pasar a Express; el listener de Socket.IO atenderá la petición
+      }
+      app(req, res)
+    })
     initSocket(httpServer)
     httpServer.listen(port, () => {
       console.log(`🚀 Server is running on port ${port}`)

@@ -1,147 +1,146 @@
-# Socket.IO – Guía para el frontend (Next.js)
+# Socket.IO en Next.js (frontend)
 
-## Resumen
+El **backend** (Node.js, repo aparte) ya tiene Socket.IO. Este doc es solo para el **cliente** en Next.js.
 
-Cuando el usuario paga (Wompi o Blink), el backend recibe el webhook, actualiza el booking a `completed` y emite por Socket.IO el evento `payment:completed` a la sala del usuario. El frontend debe conectarse, unirse a esa sala con el `userId` (ej. Clerk) y reaccionar al evento (toast, redirección a “Mis reservas”, etc.).
+Referencia: [Socket.IO – How to use with Next.js](https://socket.io/es/how-to/use-with-nextjs).
 
 ---
 
-## 1. Instalación en Next.js
+## 1. Instalar
 
 ```bash
-npm install socket.io-client
+pnpm install socket.io-client
 ```
 
 ---
 
-## 2. URL del backend
+## 2. Rewrite en Next.js (backend no expuesto)
 
-Socket.IO se sirve en el **mismo host y puerto** que tu API. Ejemplo:
-
-- API: `http://localhost:3002`
-- Socket: `http://localhost:3002` (mismo origen; el path es `/socket.io` por defecto)
-
-En producción usa tu URL de API, ej: `https://api.tudominio.com`.
+Tu `next.config` ya reescribe `/backend/:path*` → `BACKEND_URL/:path*`. Así el navegador solo habla con tu dominio; Next envía la petición al backend. El cliente debe usar **mismo origen** y path **`/backend/socket.io`**.
 
 ---
 
-## 3. Conectar y unirse a la sala del usuario
+## 3. Crear el cliente (evitar SSR)
 
-El backend espera que el cliente emita el evento **`join`** con **`userId`** (el mismo que usas en el backend para `user_id` en bookings, ej. Clerk `user.id`). Así el servidor te pone en la sala `user:{userId}` y te enviará ahí `payment:completed`.
+Socket.IO debe ejecutarse solo en el navegador. Un solo archivo:
 
-Ejemplo de hook en Next.js (cliente):
+**`src/lib/socket.ts`** (o `src/socket.ts`):
 
 ```ts
-// hooks/usePaymentSocket.ts
 'use client'
 
-import { useEffect, useRef } from 'react'
 import { io, Socket } from 'socket.io-client'
 
-const SOCKET_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3002'
-
-export function usePaymentSocket(userId: string | null, onPaymentCompleted: (data: { bookingId: string; status: string }) => void) {
-  const socketRef = useRef<Socket | null>(null)
-
-  useEffect(() => {
-    if (!userId) return
-
-    const socket = io(SOCKET_URL, { path: '/socket.io', autoConnect: true })
-    socketRef.current = socket
-
-    socket.on('connect', () => {
-      socket.emit('join', { userId })
-    })
-
-    socket.on('payment:completed', onPaymentCompleted)
-
-    return () => {
-      socket.off('payment:completed')
-      socket.disconnect()
-      socketRef.current = null
-    }
-  }, [userId, onPaymentCompleted])
-
-  return socketRef.current
+// Mismo origen: el navegador pide a tu sitio /backend/socket.io
+// Next rewrites a BACKEND_URL/socket.io (el backend no queda expuesto)
+const socketOptions = {
+  path: '/backend/socket.io',
+  transports: ['websocket'] as const,
 }
+
+export const socket: Socket =
+  typeof window !== 'undefined'
+    ? io('', socketOptions)
+    : ({} as Socket)
 ```
 
-Uso en una página (ej. después de crear el booking / ir a pagar):
+- **URL `''`**: mismo origen (ej. `https://www.dubuu.com` o `http://localhost:3000`). Las peticiones van a tu Next, que hace el rewrite.
+- **Path `/backend/socket.io`**: coincide con tu `source: "/backend/:path*"`; el backend sigue escuchando en `/socket.io`.
+- **Socket solo en el cliente**: en SSR `socket` es un objeto vacío; en la página solo usas `socket.on`/`emit` dentro de `useEffect`, que corre en el cliente.
+
+---
+
+## 4. Usar en la página
+
+Conectar, unirse a la sala con `userId` y escuchar `payment:completed`:
 
 ```tsx
 'use client'
 
-import { useUser } from '@clerk/nextjs'
+import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useCallback } from 'react'
-import { usePaymentSocket } from '@/hooks/usePaymentSocket'
-import { toast } from 'sonner' // o tu librería de toasts
+import { useUser } from '@clerk/nextjs'
+import { socket } from '@/lib/socket'
+import { toast } from 'sonner'
 
 export default function CheckoutPage() {
   const { user } = useUser()
   const router = useRouter()
 
-  const handlePaymentCompleted = useCallback(
-    (data: { bookingId: string; status: string }) => {
+  useEffect(() => {
+    if (!user?.id) return
+
+    function onConnect() {
+      socket.emit('join', { userId: user.id })
+    }
+
+    function onPaymentCompleted(data: { bookingId: string; status: string }) {
       toast.success('Pago confirmado')
-      router.push('/mis-reservas') // o la ruta que prefieras
-    },
-    [router],
-  )
+      router.push('/mis-reservas')
+    }
 
-  usePaymentSocket(user?.id ?? null, handlePaymentCompleted)
+    if (socket.connected) onConnect()
 
-  return (
-    // ... tu UI de checkout
-  )
+    socket.on('connect', onConnect)
+    socket.on('payment:completed', onPaymentCompleted)
+
+    return () => {
+      socket.off('connect', onConnect)
+      socket.off('payment:completed', onPaymentCompleted)
+    }
+  }, [user?.id, router])
+
+  return (/* tu UI */)
 }
 ```
 
-- **userId**: mismo que envías al backend al crear el booking (ej. `user.id` de Clerk).
-- **onPaymentCompleted**: se ejecuta cuando el webhook de Wompi/Blink ya procesó el pago y el backend emitió `payment:completed`.
+- **`userId`**: el mismo que usas en el backend (ej. Clerk `user.id`).
+- El backend une el socket a la sala `user:{userId}` y emite `payment:completed` cuando el webhook confirma el pago.
 
 ---
 
-## 4. Cómo saber que ya funciona
+## 5. Comprobar transporte (opcional)
 
-1. **Conexión**: en el hook, tras `socket.on('connect', ...)` puedes hacer `console.log('Socket connected')` o mostrar un indicador en UI.
-2. **Join**: el backend no devuelve nada al emitir `join`; con estar conectado y emitir `join` con `userId` es suficiente.
-3. **Pago real**: crea un booking, paga con Wompi o Blink y deja que el webhook se dispare. En el cliente debería ejecutarse `onPaymentCompleted` (toast + redirección).
-4. **Prueba rápida desde el backend**: en algún endpoint o script, puedes hacer:
-   ```ts
-   getIO().to(getUserRoom('TU_USER_ID')).emit('payment:completed', { bookingId: '...', status: 'completed' })
-   ```
-   y comprobar que el front recibe el evento.
+Para ver si va por WebSocket (como en la [doc oficial](https://socket.io/es/how-to/use-with-nextjs)):
 
----
+```ts
+const [transport, setTransport] = useState('N/A')
 
-## 5. Variables de entorno (recomendado)
+useEffect(() => {
+  function onConnect() {
+    setTransport(socket.io.engine.transport.name) // "websocket" o "polling"
+  }
+  socket.on('connect', onConnect)
+  return () => socket.off('connect', onConnect)
+}, [])
 
-En el backend (`.env`):
-
-```env
-FRONTEND_URL=http://localhost:3000
+// En el JSX: <p>Transport: { transport }</p>
 ```
 
-En producción pon la URL de tu front (ej. `https://tudominio.com`) para CORS de Socket.IO.
-
-En el frontend (`.env.local`):
-
-```env
-NEXT_PUBLIC_SITE_URL=http://localhost:3002
-```
-
-En producción la URL de tu API.
+Con `transports: ['websocket']` deberías ver **websocket**.
 
 ---
 
-## 6. Resumen de flujo
+## 6. Variables de entorno
 
-| Paso | Quién | Qué pasa |
-|------|--------|----------|
-| 1 | Frontend | Usuario inicia pago → llamas al endpoint de crear booking (status `in-process`). |
-| 2 | Frontend | Usuario paga en Wompi/Blink; la página sigue abierta y el socket está conectado y con `join(userId)`. |
-| 3 | Backend | Wompi/Blink envían webhook → backend actualiza booking a `completed` y emite `payment:completed` a `user:{userId}`. |
-| 4 | Frontend | El cliente recibe `payment:completed` → toast “Pago confirmado” y/o redirección a “Mis reservas”. |
+Para el **rewrite** solo necesitas en Next.js (servidor, no tiene que ser pública):
 
-No necesitas polling: con este flujo el backend “empuja” el evento al frontend en cuanto el webhook confirma el pago.
+```env
+BACKEND_URL=https://dubuu-dev-nodeapi.online
+```
+
+En local: `BACKEND_URL=http://localhost:3002`. El socket no usa `NEXT_PUBLIC_*`: el cliente conecta a mismo origen y el rewrite usa `BACKEND_URL` en el servidor.
+
+---
+
+## Resumen
+
+| Qué | Valor |
+|-----|--------|
+| URL del socket | `''` (mismo origen: tu dominio o localhost:3000) |
+| Path | `/backend/socket.io` (rewrite → backend `/socket.io`) |
+| Solo WebSocket | `transports: ['websocket']` |
+| Evitar SSR | `typeof window !== 'undefined'` para crear `io()` solo en el cliente |
+| Eventos | `join` con `{ userId }` al conectar; `payment:completed` para toast/redirect |
+
+El backend (repo aparte) escucha en `/socket.io`. Next recibe en `/backend/socket.io` y reescribe a `BACKEND_URL/socket.io`.
