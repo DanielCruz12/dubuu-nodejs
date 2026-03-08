@@ -52,6 +52,7 @@
     "qrcode": "^1.5.4",
     "rimraf": "^5.0.7",
     "save-dev": "^0.0.1-security",
+    "socket.io": "^4.8.3",
     "ssh2": "^1.16.0",
     "svix": "^1.26.0",
     "swagger-jsdoc": "^6.2.8",

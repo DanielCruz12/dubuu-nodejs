@@ -2,6 +2,7 @@ import { Request, Response } from 'express'
 import { Webhook } from 'svix'
 import { updateBookingStatusByTransactionId } from '../services/booking-service'
 import { BookingStatus } from '../constants'
+import { getIO, getUserRoom } from '../socket'
 
 const BLINK_WEBHOOK_SECRET = process.env.BLINK_WEBHOOK_SECRET
 
@@ -28,7 +29,18 @@ export async function handleBlinkWebhook(req: Request, res: Response) {
 
     // Blink envia "receive.lightning" con transaction.status = "success" cuando la factura se paga.
     if (eventType?.startsWith('receive.') && txStatus === 'success' && paymentHash) {
-      await updateBookingStatusByTransactionId(paymentHash, BookingStatus.COMPLETED)
+      const updatedBooking = await updateBookingStatusByTransactionId(
+        paymentHash,
+        BookingStatus.COMPLETED,
+      )
+      if (updatedBooking?.user_id) {
+        getIO()
+          .to(getUserRoom(updatedBooking.user_id))
+          .emit('payment:completed', {
+            bookingId: updatedBooking.id,
+            status: BookingStatus.COMPLETED,
+          })
+      }
     }
 
     return res.sendStatus(200)

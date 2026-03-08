@@ -2,6 +2,7 @@ import { Request, Response } from 'express'
 import crypto from 'crypto'
 import { updateBookingStatusByTransactionId } from '../services/booking-service'
 import { BookingStatus } from '../constants'
+import { getIO, getUserRoom } from '../socket'
 
 const WOMPI_SECRET = process.env.WOMPI_CLIENT_SECRET || 'TU_API_SECRET'
 
@@ -27,7 +28,18 @@ export const handleWompiWebhook = async (req: Request, res: Response) => {
     const transactionId = webhookData?.IdTransaccion
 
     if (transactionId) {
-      await updateBookingStatusByTransactionId(transactionId, BookingStatus.COMPLETED)
+      const updatedBooking = await updateBookingStatusByTransactionId(
+        transactionId,
+        BookingStatus.COMPLETED,
+      )
+      if (updatedBooking?.user_id) {
+        getIO()
+          .to(getUserRoom(updatedBooking.user_id))
+          .emit('payment:completed', {
+            bookingId: updatedBooking.id,
+            status: BookingStatus.COMPLETED,
+          })
+      }
     } else {
       console.warn('⚠️ No se encontró ID de transacción en el webhook')
     }
