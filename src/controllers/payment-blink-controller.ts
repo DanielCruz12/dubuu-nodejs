@@ -1,6 +1,6 @@
 import { Request, Response } from 'express'
 import { createBlinkCheckout } from '../services/payment-blink-service'
-import { createBookingService } from '../services/booking-service'
+import { createOrAttachBookingForPayment } from '../services/booking-service'
 import { PaymentMethod, BookingStatus } from '../constants'
 
 /**
@@ -45,7 +45,7 @@ export async function handleCreateBlinkTransaction(
       Boolean(bookingInput?.tour_date_id ?? bookingInput?.datetime)
 
     const booking = hasBookingFields
-      ? await createBookingService({
+      ? await createOrAttachBookingForPayment({
           user_id: bookingInput.user_id,
           product_id: bookingInput.product_id,
           tickets: bookingInput.tickets,

@@ -1,4 +1,4 @@
-import { eq, sql } from 'drizzle-orm'
+import { and, eq, sql } from 'drizzle-orm'
 import { db } from '../database/db'
 import { Bookings } from '../database/schemas/bookings'
 import { statusCodes } from '../utils'
@@ -177,6 +177,74 @@ export const getBookingByIdService = async (bookingId: string) => {
     const err: any = new Error('Error al obtener la reserva extendida.')
     err.statusCode = 500
     throw err
+  }
+}
+
+export const createOrAttachBookingForPayment = async (bookingData: any) => {
+  const requiredFields = [
+    'user_id',
+    'product_id',
+    'paymentMethod',
+    'idTransaccion',
+    'tickets',
+  ]
+  let tourDateId = bookingData.tour_date_id ?? bookingData.datetime
+  if (Array.isArray(tourDateId)) {
+    tourDateId = tourDateId[0] ?? null
+  }
+  if (!tourDateId) {
+    const error: any = new Error('tour_date_id o datetime es obligatorio.')
+    error.statusCode = 400
+    throw error
+  }
+  const missingFields = requiredFields.filter((field) => !bookingData[field])
+  if (missingFields.length > 0) {
+    const error: any = new Error(
+      `Los campos ${missingFields.join(', ')} son obligatorios.`,
+    )
+    error.statusCode = 400
+    console.error('400:', error.message)
+    throw error
+  }
+
+  try {
+    const [existing] = await db
+      .select()
+      .from(Bookings)
+      .where(
+        and(
+          eq(Bookings.user_id, bookingData.user_id),
+          eq(Bookings.product_id, bookingData.product_id),
+          eq(Bookings.tour_date_id, tourDateId),
+          eq(Bookings.status, BookingStatus.IN_PROCESS),
+        ),
+      )
+      .limit(1)
+      .execute()
+
+    if (existing) {
+      const [updated] = await db
+        .update(Bookings)
+        .set({
+          idTransaccion: bookingData.idTransaccion,
+          paymentMethod: bookingData.paymentMethod,
+          total: String(bookingData.total),
+          is_live: bookingData.is_live ?? existing.is_live,
+          updated_at: new Date(),
+        })
+        .where(eq(Bookings.id, existing.id))
+        .returning()
+      return updated
+    }
+
+    return await createBookingService(bookingData)
+  } catch (error: any) {
+    if (!error.statusCode) {
+      const err: any = new Error('Error al crear o asociar la reserva al pago.')
+      err.statusCode = 500
+      throw err
+    }
+    throw error
   }
 }
 
