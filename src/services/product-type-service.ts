@@ -2,7 +2,10 @@ import { and, eq, ilike } from 'drizzle-orm'
 import { db } from '../database/db'
 import { ProductTypes, ProductTypeTranslations } from '../database/schemas'
 import { statusCodes } from '../utils'
-import { getDefaultLocale } from './translation-service'
+import {
+  getDefaultLocale,
+  getEnabledLocales,
+} from './translation-service'
 import { saveProductTypeWithTranslations } from './product-catalog-translations-service'
 
 export const getProductTypesService = async (locale?: string) => {
@@ -68,16 +71,22 @@ export const getProductTypeByIdService = async (id: string, locale?: string) => 
 export const createProductTypeService = async (data: {
   name?: string
   description?: string
+  locale?: string
 }) => {
   const name = data?.name?.trim()
   const description = data?.description?.trim()
+  const requestedLocale = data?.locale?.trim()?.toLowerCase()
+  const enabled = getEnabledLocales()
+  const locale = requestedLocale && enabled.includes(requestedLocale)
+    ? requestedLocale
+    : undefined
 
   if (!name || !description) {
     console.error('400:', statusCodes[400])
     throw new Error('Los campos name y description son obligatorios.')
   }
 
-  const lang = getDefaultLocale()
+  const lang = locale ?? getDefaultLocale()
   try {
     const existing = await db
       .select()
@@ -95,8 +104,8 @@ export const createProductTypeService = async (data: {
 
     const [newType] = await db.insert(ProductTypes).values({}).returning()
     if (!newType) throw new Error('Error al crear el tipo.')
-    await saveProductTypeWithTranslations(newType.id, { name, description })
-    return await getProductTypeByIdService(newType.id)
+    await saveProductTypeWithTranslations(newType.id, { name, description }, locale)
+    return await getProductTypeByIdService(newType.id, locale)
   } catch (error) {
     console.error('500:', statusCodes[500], '-', error)
     throw new Error('Error al crear el tipo de producto.')

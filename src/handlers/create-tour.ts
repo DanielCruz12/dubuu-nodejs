@@ -1,6 +1,7 @@
 import { db } from '../database/db'
 import { ProductAmenitiesProducts, TourDates, Tours } from '../database/schemas'
 import { saveTourWithTranslations } from '../services/tour-translations-service'
+import { getEnabledLocales } from '../services/translation-service'
 
 export const createTourHandler = async (data: any, productId: string) => {
   const {
@@ -16,8 +17,14 @@ export const createTourHandler = async (data: any, productId: string) => {
     amenities = [],
     lat,
     long,
-    packing_list = [], // ← AGREGAR ESTA LÍNEA
+    packing_list = [],
+    locale: requestedLocale,
   } = data
+  const enabled = getEnabledLocales()
+  const tourLocale =
+    requestedLocale?.trim()?.toLowerCase() && enabled.includes(requestedLocale.trim().toLowerCase())
+      ? requestedLocale.trim().toLowerCase()
+      : undefined
 
   // ✅ Parsear campos que vienen como JSON strings
   let parsedAvailableDates = available_dates
@@ -96,15 +103,19 @@ export const createTourHandler = async (data: any, productId: string) => {
     long: numericLong.toString(),
   })
 
-  await saveTourWithTranslations(productId, {
-    departure_point,
-    difficulty,
-    highlight,
-    included,
-    itinerary: parsedItinerary,
-    packing_list: parsedPackingList,
-    expenses: parsedExpenses,
-  })
+  await saveTourWithTranslations(
+    productId,
+    {
+      departure_point,
+      difficulty,
+      highlight,
+      included,
+      itinerary: parsedItinerary,
+      packing_list: parsedPackingList,
+      expenses: parsedExpenses,
+    },
+    tourLocale,
+  )
 
   const tourDateRows = parsedDates.map((date) => ({
     tour_id: productId,

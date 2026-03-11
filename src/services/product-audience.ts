@@ -6,7 +6,10 @@ import {
   TargetProductAudienceTranslations,
 } from '../database/schemas'
 import { statusCodes } from '../utils'
-import { getDefaultLocale } from './translation-service'
+import {
+  getDefaultLocale,
+  getEnabledLocales,
+} from './translation-service'
 import { saveTargetProductAudienceWithTranslations } from './product-catalog-translations-service'
 
 export const getTargetProductAudiencesService = async (
@@ -78,13 +81,18 @@ export const getTargetProductAudienceByIdService = async (
 export const createTargetProductAudienceService = async (data: any) => {
   const name = data?.name?.trim()
   const description = data?.description?.trim() ?? ''
+  const requestedLocale = data?.locale?.trim()?.toLowerCase()
+  const enabled = getEnabledLocales()
+  const locale = requestedLocale && enabled.includes(requestedLocale)
+    ? requestedLocale
+    : undefined
 
   if (!name) {
     console.error('400:', statusCodes[400])
     throw new Error('El nombre de la audiencia es obligatorio.')
   }
 
-  const lang = getDefaultLocale()
+  const lang = locale ?? getDefaultLocale()
   try {
     const existing = await db
       .select()
@@ -105,11 +113,12 @@ export const createTargetProductAudienceService = async (data: any) => {
       .values({})
       .returning()
     if (!newAudience) throw new Error('Error al crear la audiencia.')
-    await saveTargetProductAudienceWithTranslations(newAudience.id, {
-      name,
-      description,
-    })
-    return await getTargetProductAudienceByIdService(newAudience.id)
+    await saveTargetProductAudienceWithTranslations(
+      newAudience.id,
+      { name, description },
+      locale,
+    )
+    return await getTargetProductAudienceByIdService(newAudience.id, locale)
   } catch (error) {
     console.error('500:', statusCodes[500], '-', error)
     throw new Error('Error al crear la audiencia.')

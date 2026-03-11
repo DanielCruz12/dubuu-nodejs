@@ -2,7 +2,10 @@ import { and, eq } from 'drizzle-orm'
 import { db } from '../database/db'
 import { Faqs, FaqTranslations } from '../database/schemas'
 import { statusCodes } from '../utils'
-import { getDefaultLocale } from './translation-service'
+import {
+  getDefaultLocale,
+  getEnabledLocales,
+} from './translation-service'
 import { saveFaqWithTranslations } from './faq-translations-service'
 
 export const getFaqsService = async (locale?: string) => {
@@ -107,7 +110,12 @@ export const getFaqByIdService = async (faqId: string, locale?: string) => {
 }
 
 export const createFaqService = async (data: any) => {
-  const { product_id, question, answer, user_id } = data
+  const { product_id, question, answer, user_id, locale: requestedLocale } = data
+  const enabled = getEnabledLocales()
+  const locale =
+    requestedLocale?.trim()?.toLowerCase() && enabled.includes(requestedLocale.trim().toLowerCase())
+      ? requestedLocale.trim().toLowerCase()
+      : undefined
 
   if (!product_id || !question || !answer || !user_id) {
     console.error('400:', statusCodes[400])
@@ -121,8 +129,8 @@ export const createFaqService = async (data: any) => {
       .returning()
     if (!newFaq) throw new Error('Error al crear la FAQ.')
 
-    await saveFaqWithTranslations(newFaq.id, { question, answer })
-    const created = await getFaqByIdService(newFaq.id)
+    await saveFaqWithTranslations(newFaq.id, { question, answer }, locale)
+    const created = await getFaqByIdService(newFaq.id, locale)
     return created ?? newFaq
   } catch (error) {
     console.error('500:', statusCodes[500], '-', error)
@@ -136,7 +144,12 @@ export const updateFaqService = async (faqId: string, data: any) => {
     throw new Error('El ID de la FAQ es obligatorio.')
   }
 
-  const { question, answer } = data
+  const { question, answer, locale: requestedLocale } = data
+  const enabled = getEnabledLocales()
+  const locale =
+    requestedLocale?.trim()?.toLowerCase() && enabled.includes(requestedLocale.trim().toLowerCase())
+      ? requestedLocale.trim().toLowerCase()
+      : undefined
   try {
     if (question !== undefined || answer !== undefined) {
       const defaultLocale = getDefaultLocale()
@@ -153,10 +166,14 @@ export const updateFaqService = async (faqId: string, data: any) => {
           ),
         )
         .limit(1)
-      await saveFaqWithTranslations(faqId, {
-        question: question ?? currentTr?.question ?? '',
-        answer: answer ?? currentTr?.answer ?? '',
-      })
+      await saveFaqWithTranslations(
+        faqId,
+        {
+          question: question ?? currentTr?.question ?? '',
+          answer: answer ?? currentTr?.answer ?? '',
+        },
+        locale,
+      )
     }
 
     const [updatedFaq] = await db
@@ -164,7 +181,7 @@ export const updateFaqService = async (faqId: string, data: any) => {
       .from(Faqs)
       .where(eq(Faqs.id, faqId))
       .limit(1)
-    return (await getFaqByIdService(faqId)) ?? updatedFaq ?? null
+    return (await getFaqByIdService(faqId, locale)) ?? updatedFaq ?? null
   } catch (error) {
     console.error('500:', statusCodes[500], '-', error)
     throw new Error('Error al actualizar la FAQ.')

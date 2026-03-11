@@ -3,7 +3,10 @@ import { and, eq, ilike } from 'drizzle-orm'
 import { db } from '../database/db'
 import { ProductAmenities, ProductAmenityTranslations } from '../database/schemas'
 import { statusCodes } from '../utils'
-import { getDefaultLocale } from './translation-service'
+import {
+  getDefaultLocale,
+  getEnabledLocales,
+} from './translation-service'
 import { saveProductAmenityWithTranslations } from './product-catalog-translations-service'
 
 export const getProductAmenitiesService = async (
@@ -77,13 +80,18 @@ export const getProductAmenityByIdService = async (
 export const createProductAmenityService = async (data: any) => {
   const name = data?.name?.trim()
   const description = data?.description?.trim() ?? ''
+  const requestedLocale = data?.locale?.trim()?.toLowerCase()
+  const enabled = getEnabledLocales()
+  const locale = requestedLocale && enabled.includes(requestedLocale)
+    ? requestedLocale
+    : undefined
 
   if (!name) {
     console.error('400:', statusCodes[400])
     throw new Error('El nombre del amenity es obligatorio.')
   }
 
-  const lang = getDefaultLocale()
+  const lang = locale ?? getDefaultLocale()
   try {
     const existing = await db
       .select()
@@ -104,11 +112,12 @@ export const createProductAmenityService = async (data: any) => {
       .values({ category_id: data?.category_id })
       .returning()
     if (!newAmenity) throw new Error('Error al crear el amenity.')
-    await saveProductAmenityWithTranslations(newAmenity.id, {
-      name,
-      description,
-    })
-    return await getProductAmenityByIdService(newAmenity.id)
+    await saveProductAmenityWithTranslations(
+      newAmenity.id,
+      { name, description },
+      locale,
+    )
+    return await getProductAmenityByIdService(newAmenity.id, locale)
   } catch (error) {
     console.error('500:', statusCodes[500], '-', error)
     throw new Error('Error al crear el amenity.')

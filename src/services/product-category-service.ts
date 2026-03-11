@@ -7,7 +7,10 @@ import {
   ProductTypeTranslations,
 } from '../database/schemas'
 import { statusCodes } from '../utils'
-import { getDefaultLocale } from './translation-service'
+import {
+  getDefaultLocale,
+  getEnabledLocales,
+} from './translation-service'
 import { saveProductCategoryWithTranslations } from './product-catalog-translations-service'
 
 export const getProductCategoriesService = async (locale?: string) => {
@@ -86,6 +89,12 @@ export const createProductCategoryService = async (data: any) => {
   const name = data?.name?.trim()
   const description = data?.description?.trim()
   const product_type_id = data?.product_type_id
+  /** Idioma en que vienen name/description. Si no se envía, se detecta automáticamente. Para traducir al resto hace falta GOOGLE_TRANSLATE_API_KEY. */
+  const requestedLocale = data?.locale?.trim()?.toLowerCase()
+  const enabled = getEnabledLocales()
+  const locale = requestedLocale && enabled.includes(requestedLocale)
+    ? requestedLocale
+    : undefined
 
   if (!name || !description || !product_type_id) {
     throw new Error('Campos requeridos: name, description y product_type_id.')
@@ -104,11 +113,12 @@ export const createProductCategoryService = async (data: any) => {
       .returning()
     if (!newCategory) throw new Error('Error al crear la categoría.')
 
-    await saveProductCategoryWithTranslations(newCategory.id, {
-      name,
-      description,
-    })
-    return await getProductCategoryByIdService(newCategory.id)
+    await saveProductCategoryWithTranslations(
+      newCategory.id,
+      { name, description },
+      locale,
+    )
+    return await getProductCategoryByIdService(newCategory.id, locale)
   } catch (error) {
     console.error('Error al crear categoría:', error)
     throw error

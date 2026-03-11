@@ -18,7 +18,10 @@ import {
   TargetProductAudienceTranslations,
 } from '../database/schemas'
 import { eq, and, ilike, gte, lte, desc, or, lt } from 'drizzle-orm'
-import { getDefaultLocale } from './translation-service'
+import {
+  getDefaultLocale,
+  getEnabledLocales,
+} from './translation-service'
 import { getProductTypeByIdService } from './product-type-service'
 import { createTourHandler } from '../handlers/create-tour'
 import {
@@ -259,7 +262,13 @@ export const createProductService = async (productData: any) => {
     banner = '',
     is_approved = false,
     is_active = true,
+    locale: requestedLocale,
   } = productData
+  const enabled = getEnabledLocales()
+  const productLocale =
+    requestedLocale?.trim()?.toLowerCase() && enabled.includes(requestedLocale.trim().toLowerCase())
+      ? requestedLocale.trim().toLowerCase()
+      : undefined
 
   // Validaciones generales
   if (
@@ -316,11 +325,15 @@ export const createProductService = async (productData: any) => {
         )
     }
 
-    await saveProductWithTranslations(newProduct.id, {
-      name,
-      description,
-      address: address ?? '',
-    })
+    await saveProductWithTranslations(
+      newProduct.id,
+      {
+        name,
+        description,
+        address: address ?? '',
+      },
+      productLocale,
+    )
 
     return newProduct
   } catch (error) {
@@ -343,7 +356,13 @@ export const updateProductService = async (
       is_active,
       selectedDateId,
       max_people,
+      locale: requestedLocale,
     } = productData
+    const enabled = getEnabledLocales()
+    const productLocale =
+      requestedLocale?.trim()?.toLowerCase() && enabled.includes(requestedLocale.trim().toLowerCase())
+        ? requestedLocale.trim().toLowerCase()
+        : undefined
 
     // Preparar objeto de actualización para el producto base
     const productUpdateData: any = {
@@ -466,7 +485,7 @@ export const updateProductService = async (
         description: (description ?? currentTr?.description ?? '') as string,
         address: (address ?? currentTr?.address ?? '') as string,
       }
-      await saveProductWithTranslations(productId, fields)
+      await saveProductWithTranslations(productId, fields, productLocale)
     }
 
     return updatedProduct

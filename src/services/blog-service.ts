@@ -10,7 +10,10 @@ import {
   BlogSectionTranslations,
   BlogSections,
 } from '../database/schemas'
-import { getDefaultLocale } from './translation-service'
+import {
+  getDefaultLocale,
+  getEnabledLocales,
+} from './translation-service'
 import {
   saveBlogPostWithTranslations,
   saveBlogSectionWithTranslations,
@@ -18,18 +21,23 @@ import {
 } from './blog-translations-service'
 
 export const createPost = async (data: any) => {
-  const { title, slug, author_bio, ...rest } = data
+  const { title, slug, author_bio, locale: requestedLocale, ...rest } = data
+  const enabled = getEnabledLocales()
+  const locale =
+    requestedLocale?.trim()?.toLowerCase() && enabled.includes(requestedLocale.trim().toLowerCase())
+      ? requestedLocale.trim().toLowerCase()
+      : undefined
   const [post] = await db
     .insert(BlogPosts)
     .values(rest)
     .returning()
   if (!post) throw new Error('Error al crear el post.')
   if (title && slug) {
-    await saveBlogPostWithTranslations(post.id, {
-      title,
-      slug,
-      author_bio: author_bio ?? null,
-    })
+    await saveBlogPostWithTranslations(
+      post.id,
+      { title, slug, author_bio: author_bio ?? null },
+      locale,
+    )
   }
   return [post]
 }
@@ -91,7 +99,12 @@ export const getPostById = async (id: string, locale?: string) => {
 }
 
 export const updatePost = async (id: string, data: any) => {
-  const { title, slug, author_bio, ...rest } = data
+  const { title, slug, author_bio, locale: requestedLocale, ...rest } = data
+  const enabled = getEnabledLocales()
+  const locale =
+    requestedLocale?.trim()?.toLowerCase() && enabled.includes(requestedLocale.trim().toLowerCase())
+      ? requestedLocale.trim().toLowerCase()
+      : undefined
   await db.update(BlogPosts).set(rest).where(eq(BlogPosts.id, id))
   if (title !== undefined || slug !== undefined || author_bio !== undefined) {
     const lang = getDefaultLocale()
@@ -105,11 +118,15 @@ export const updatePost = async (id: string, data: any) => {
         ),
       )
       .limit(1)
-    await saveBlogPostWithTranslations(id, {
-      title: title ?? cur?.title ?? '',
-      slug: slug ?? cur?.slug ?? '',
-      author_bio: author_bio ?? cur?.author_bio ?? null,
-    })
+    await saveBlogPostWithTranslations(
+      id,
+      {
+        title: title ?? cur?.title ?? '',
+        slug: slug ?? cur?.slug ?? '',
+        author_bio: author_bio ?? cur?.author_bio ?? null,
+      },
+      locale,
+    )
   }
   return await db.select().from(BlogPosts).where(eq(BlogPosts.id, id))
 }
@@ -119,14 +136,20 @@ export const deletePost = async (id: string) => {
 }
 
 export const createCategory = async (data: any) => {
-  const { name, description } = data
+  const { name, description, locale: requestedLocale } = data
+  const enabled = getEnabledLocales()
+  const locale =
+    requestedLocale?.trim()?.toLowerCase() && enabled.includes(requestedLocale.trim().toLowerCase())
+      ? requestedLocale.trim().toLowerCase()
+      : undefined
   const [cat] = await db.insert(BlogCategories).values({}).returning()
   if (!cat) throw new Error('Error al crear la categoría.')
   if (name) {
-    await saveBlogCategoryWithTranslations(cat.id, {
-      name,
-      description: description ?? null,
-    })
+    await saveBlogCategoryWithTranslations(
+      cat.id,
+      { name, description: description ?? null },
+      locale,
+    )
   }
   return [cat]
 }
@@ -152,7 +175,12 @@ export const getCategories = async (locale?: string) => {
 }
 
 export const updateCategory = async (id: string, data: any) => {
-  const { name, description, ...rest } = data
+  const { name, description, locale: requestedLocale, ...rest } = data
+  const enabled = getEnabledLocales()
+  const locale =
+    requestedLocale?.trim()?.toLowerCase() && enabled.includes(requestedLocale.trim().toLowerCase())
+      ? requestedLocale.trim().toLowerCase()
+      : undefined
   await db.update(BlogCategories).set(rest).where(eq(BlogCategories.id, id))
   if (name !== undefined || description !== undefined) {
     const [cur] = await db
@@ -165,10 +193,14 @@ export const updateCategory = async (id: string, data: any) => {
         ),
       )
       .limit(1)
-    await saveBlogCategoryWithTranslations(id, {
-      name: name ?? cur?.name ?? '',
-      description: description ?? cur?.description ?? null,
-    })
+    await saveBlogCategoryWithTranslations(
+      id,
+      {
+        name: name ?? cur?.name ?? '',
+        description: description ?? cur?.description ?? null,
+      },
+      locale,
+    )
   }
   return await db.select().from(BlogCategories).where(eq(BlogCategories.id, id))
 }
@@ -202,11 +234,20 @@ export const deleteLike = async (postId: string, userId: string) => {
 }
 
 export const createSection = async (data: any) => {
-  const { title, content, ...rest } = data
+  const { title, content, locale: requestedLocale, ...rest } = data
+  const enabled = getEnabledLocales()
+  const locale =
+    requestedLocale?.trim()?.toLowerCase() && enabled.includes(requestedLocale.trim().toLowerCase())
+      ? requestedLocale.trim().toLowerCase()
+      : undefined
   const [section] = await db.insert(BlogSections).values(rest).returning()
   if (!section) throw new Error('Error al crear la sección.')
   if (title && content) {
-    await saveBlogSectionWithTranslations(section.id, { title, content })
+    await saveBlogSectionWithTranslations(
+      section.id,
+      { title, content },
+      locale,
+    )
   }
   return [section]
 }
@@ -237,7 +278,12 @@ export const getSections = async (postId: string, locale?: string) => {
 }
 
 export const updateSection = async (id: string, data: any) => {
-  const { title, content, ...rest } = data
+  const { title, content, locale: requestedLocale, ...rest } = data
+  const enabled = getEnabledLocales()
+  const locale =
+    requestedLocale?.trim()?.toLowerCase() && enabled.includes(requestedLocale.trim().toLowerCase())
+      ? requestedLocale.trim().toLowerCase()
+      : undefined
   await db.update(BlogSections).set(rest).where(eq(BlogSections.id, id))
   if (title !== undefined || content !== undefined) {
     const [cur] = await db
@@ -250,10 +296,14 @@ export const updateSection = async (id: string, data: any) => {
         ),
       )
       .limit(1)
-    await saveBlogSectionWithTranslations(id, {
-      title: title ?? cur?.title ?? '',
-      content: content ?? cur?.content ?? '',
-    })
+    await saveBlogSectionWithTranslations(
+      id,
+      {
+        title: title ?? cur?.title ?? '',
+        content: content ?? cur?.content ?? '',
+      },
+      locale,
+    )
   }
   return await db.select().from(BlogSections).where(eq(BlogSections.id, id))
 }

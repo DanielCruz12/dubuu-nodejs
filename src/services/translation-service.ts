@@ -1,6 +1,9 @@
 import axios from 'axios'
 
-const GOOGLE_TRANSLATE_API_KEY = process.env.GOOGLE_TRANSLATE_API_KEY
+/** Lee la key en tiempo de ejecución para que dotenv ya haya cargado .env (import 'dotenv/config' en index). */
+function getGoogleTranslateApiKey(): string | undefined {
+  return process.env.GOOGLE_TRANSLATE_API_KEY?.trim() || undefined
+}
 const BASE_URL = 'https://translation.googleapis.com/language/translate/v2'
 
 /** Idiomas habilitados en la app. Añadir más en el futuro (ej. 'pt') aquí o por env ENABLED_LOCALES=es,en,pt */
@@ -24,14 +27,15 @@ export function getDefaultLocale(): string {
  */
 export async function detectLanguage(text: string): Promise<string> {
   if (!text?.trim()) return 'en'
-  if (!GOOGLE_TRANSLATE_API_KEY) {
+  const key = getGoogleTranslateApiKey()
+  if (!key) {
     console.warn('GOOGLE_TRANSLATE_API_KEY no definida; asumiendo "en".')
     return 'en'
   }
   try {
     const body = new URLSearchParams({
       q: text.slice(0, 5000),
-      key: GOOGLE_TRANSLATE_API_KEY,
+      key,
     }).toString()
     const { data } = await axios.post(
       'https://translation.googleapis.com/language/translate/v2/detect',
@@ -73,7 +77,8 @@ export async function translateText(
   sourceLocale?: string,
 ): Promise<string> {
   if (!text?.trim()) return text
-  if (!GOOGLE_TRANSLATE_API_KEY) {
+  const key = getGoogleTranslateApiKey()
+  if (!key) {
     console.warn(
       'GOOGLE_TRANSLATE_API_KEY no definida; devolviendo texto original.',
     )
@@ -84,7 +89,7 @@ export async function translateText(
     const params = new URLSearchParams({
       q: text,
       target: targetLocale.slice(0, 2),
-      key: GOOGLE_TRANSLATE_API_KEY,
+      key,
       format: 'text',
     })
     if (sourceLocale) params.set('source', sourceLocale.slice(0, 2))
@@ -95,7 +100,12 @@ export async function translateText(
     return data?.data?.translations?.[0]?.translatedText ?? text
   } catch (err: any) {
     const msg = err?.response?.data?.error?.message ?? err?.message
-    console.error('Error en translateText:', msg)
+    const status = err?.response?.status
+    console.error(
+      `[Traducción] Error al traducir (${sourceLocale ?? 'auto'} → ${targetLocale}):`,
+      status ? `HTTP ${status}` : '',
+      msg,
+    )
     return text
   }
 }
@@ -111,7 +121,8 @@ export async function translateTexts(
   const filtered = texts.filter((t) => t != null && String(t).trim() !== '')
   if (filtered.length === 0) return texts
 
-  if (!GOOGLE_TRANSLATE_API_KEY) {
+  const key = getGoogleTranslateApiKey()
+  if (!key) {
     console.warn(
       'GOOGLE_TRANSLATE_API_KEY no definida; devolviendo textos originales.',
     )
@@ -121,7 +132,7 @@ export async function translateTexts(
   try {
     const search = new URLSearchParams({
       target: targetLocale.slice(0, 2),
-      key: GOOGLE_TRANSLATE_API_KEY,
+      key,
       format: 'text',
     })
     if (sourceLocale) search.set('source', sourceLocale.slice(0, 2))
@@ -141,7 +152,12 @@ export async function translateTexts(
     )
   } catch (err: any) {
     const msg = err?.response?.data?.error?.message ?? err?.message
-    console.error('Error en translateTexts:', msg)
+    const status = err?.response?.status
+    console.error(
+      `[Traducción] Error en translateTexts (${sourceLocale ?? 'auto'} → ${targetLocale}):`,
+      status ? `HTTP ${status}` : '',
+      msg,
+    )
     return texts
   }
 }
