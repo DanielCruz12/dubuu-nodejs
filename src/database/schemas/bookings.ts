@@ -10,6 +10,13 @@ import {
 import { Users } from './users'
 import { Products } from './products'
 import { TourDates } from './tours'
+import { BookingStatus } from '../../constants'
+
+const bookingStatusValues = [
+  BookingStatus.COMPLETED,
+  BookingStatus.IN_PROCESS,
+  BookingStatus.CANCELED,
+] as const
 
 export const Bookings = pgTable('bookings', {
   id: uuid().primaryKey().defaultRandom().notNull(),
@@ -19,9 +26,7 @@ export const Bookings = pgTable('bookings', {
   product_id: uuid().references(() => Products.id, {
     onDelete: 'cascade',
   }),
-  status: text({ enum: ['completed', 'in-process', 'canceled'] }).default(
-    'in-process',
-  ),
+  status: text({ enum: bookingStatusValues }).default(BookingStatus.IN_PROCESS),
   is_live: boolean('is_live'),
   tickets: integer('tickets').default(1),
   total: decimal({ precision: 10, scale: 2 }).notNull(),

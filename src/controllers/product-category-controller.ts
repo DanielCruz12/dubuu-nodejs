@@ -1,6 +1,6 @@
 import { Request, Response } from 'express'
 
-import { statusCodes } from '../utils'
+import { omitTimestamps, statusCodes } from '../utils'
 import {
   getProductCategoriesService,
   getProductCategoryByIdService,
@@ -10,9 +10,8 @@ import {
 
 export const getProductCategories = async (req: Request, res: Response) => {
   try {
-    const locale = req.query.locale as string | undefined
-    const categories = await getProductCategoriesService(locale)
-    res.status(200).json(categories)
+    const categories = await getProductCategoriesService()
+    res.status(200).json(omitTimestamps(categories))
   } catch (error: any) {
     const message = statusCodes[error.status] || 'Internal Server Error'
     res.status(error.status || 500).json({ message })
@@ -27,7 +26,7 @@ export const getProductCategoryById = async (req: Request, res: Response) => {
     if (!category) {
       return res.status(404).json({ message: 'Category not found' })
     }
-    res.status(200).json(category)
+    res.status(200).json(omitTimestamps(category))
   } catch (error) {
     res.status(500).json({ message: 'Internal Server Error' })
   }
@@ -36,7 +35,7 @@ export const getProductCategoryById = async (req: Request, res: Response) => {
 export const createProductCategory = async (req: Request, res: Response) => {
   try {
     const newCategory = await createProductCategoryService(req.body)
-    res.status(201).json(newCategory)
+    res.status(201).json(omitTimestamps(newCategory))
   } catch (error: any) {
     console.error('❌ Error en createProductCategory:', error)
     res.status(400).json({ error: error.message })

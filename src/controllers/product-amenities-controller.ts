@@ -1,6 +1,6 @@
 import { Request, Response } from 'express'
 
-import { statusCodes } from '../utils'
+import { omitTimestamps, statusCodes } from '../utils'
 import {
   getProductAmenitiesService,
   getProductAmenityByIdService,
@@ -11,9 +11,8 @@ import {
 // Obtener todos los amenities
 export const getProductAmenities = async (req: Request, res: Response) => {
   try {
-    const locale = req.query.locale as string | undefined
-    const productAmenities = await getProductAmenitiesService(req, locale)
-    res.status(200).json(productAmenities)
+    const productAmenities = await getProductAmenitiesService(req)
+    res.status(200).json(omitTimestamps(productAmenities))
   } catch (error: any) {
     const message = statusCodes[error.status] || 'Internal Server Error'
     res.status(error.status || 500).json({ message })
@@ -29,7 +28,7 @@ export const getProductAmenityById = async (req: Request, res: Response) => {
     if (!productAmenity) {
       return res.status(404).json({ message: 'Product Amenity not found' })
     }
-    res.status(200).json(productAmenity)
+    res.status(200).json(omitTimestamps(productAmenity))
   } catch (error) {
     res.status(500).json({ message: 'Internal Server Error' })
   }
@@ -39,7 +38,7 @@ export const getProductAmenityById = async (req: Request, res: Response) => {
 export const createProductAmenity = async (req: Request, res: Response) => {
   try {
     const newAmenity = await createProductAmenityService(req.body)
-    res.status(201).json(newAmenity)
+    res.status(201).json(omitTimestamps(newAmenity))
   } catch (error) {
     res.status(500).json({ message: 'Internal Server Error' })
   }

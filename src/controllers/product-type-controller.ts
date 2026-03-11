@@ -1,4 +1,5 @@
 import { Request, Response } from 'express'
+import { omitTimestamps } from '../utils'
 import {
   getProductTypesService,
   getProductTypeByIdService,
@@ -9,9 +10,8 @@ import {
 
 export const getProductTypes = async (req: Request, res: Response) => {
   try {
-    const locale = req.query.locale as string | undefined
-    const types = await getProductTypesService(locale)
-    res.status(200).json(types)
+    const types = await getProductTypesService()
+    res.status(200).json(omitTimestamps(types))
   } catch (error: any) {
     res.status(500).json({ error: error.message })
   }
@@ -20,9 +20,8 @@ export const getProductTypes = async (req: Request, res: Response) => {
 export const getProductTypeById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params
-    const locale = req.query.locale as string | undefined
-    const type = await getProductTypeByIdService(id, locale)
-    res.status(200).json(type)
+    const type = await getProductTypeByIdService(id)
+    res.status(200).json(omitTimestamps(type))
   } catch (error: any) {
     res.status(404).json({ error: error.message })
   }
@@ -31,7 +30,7 @@ export const getProductTypeById = async (req: Request, res: Response) => {
 export const createProductType = async (req: Request, res: Response) => {
   try {
     const newType = await createProductTypeService(req.body)
-    res.status(201).json(newType)
+    res.status(201).json(omitTimestamps(newType))
   } catch (error: any) {
     res.status(400).json({ error: error.message })
   }
@@ -41,7 +40,7 @@ export const updateProductType = async (req: Request, res: Response) => {
   try {
     const { id } = req.params
     const updated = await updateProductTypeService(id, req.body)
-    res.status(200).json(updated)
+    res.status(200).json(omitTimestamps(updated))
   } catch (error: any) {
     res.status(400).json({ error: error.message })
   }
@@ -51,7 +50,7 @@ export const deleteProductType = async (req: Request, res: Response) => {
   try {
     const { id } = req.params
     const deleted = await deleteProductTypeService(id)
-    res.status(200).json(deleted)
+    res.status(200).json(omitTimestamps(deleted))
   } catch (error: any) {
     res.status(404).json({ error: error.message })
   }

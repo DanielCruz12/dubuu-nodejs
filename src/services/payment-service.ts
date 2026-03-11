@@ -2,11 +2,10 @@ import { eq } from 'drizzle-orm'
 import { db } from '../database/db'
 import { PaymentAccounts } from '../database/schemas'
 import { encrypt, decrypt } from '../utils/crypto'
-
-const BLINK_METHOD = 'blink'
+import { PaymentMethod } from '../constants'
 
 function isBlinkPayload(data: any): boolean {
-  return data?.payment_method === BLINK_METHOD
+  return data?.payment_method === PaymentMethod.BLINK
 }
 
 export async function createPaymentAccount(data: any) {
@@ -150,7 +149,9 @@ export async function updatePaymentAccount(accountId: string, data: any) {
 
   const current = account[0]
   const decryptedMethod = decrypt(current.payment_method)
-  const isBlink = data.payment_method === BLINK_METHOD || decryptedMethod === BLINK_METHOD
+  const isBlink =
+    data.payment_method === PaymentMethod.BLINK ||
+    decryptedMethod === PaymentMethod.BLINK
 
   const updateData: Record<string, any> = {
     payment_method: encrypt(data.payment_method ?? decryptedMethod),

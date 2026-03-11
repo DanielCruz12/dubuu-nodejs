@@ -8,7 +8,7 @@ import {
   getProductsService,
   updateProductService,
 } from '../services/product-service'
-import { statusCodes } from '../utils'
+import { omitTimestamps, statusCodes } from '../utils'
 import { deleteFilesFromS3, uploadFilesToS3 } from '../utils/aws'
 import { db } from '../database/db'
 import { TourDates } from '../database/schemas'
@@ -29,7 +29,22 @@ const getProductTypeAndCategory = async (
 export const getProducts = async (req: Request, res: Response) => {
   try {
     const products = await getProductsService(req)
-    res.status(200).json(products)
+    const sanitized = {
+      ...products,
+      data: omitTimestamps(
+        (products.data as any[]).map((p) => {
+          const {
+            user_id,
+            target_product_audience_id,
+            product_category_id,
+            product_type_id,
+            ...rest
+          } = p ?? {}
+          return rest
+        }),
+      ),
+    }
+    res.status(200).json(sanitized)
   } catch (error: any) {
     const status = error.status || 500
     const message =
