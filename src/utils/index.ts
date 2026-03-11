@@ -20,22 +20,6 @@ export function omitTimestamps<T extends Record<string, unknown>>(
   return rest as Omit<T, 'created_at' | 'updated_at'>
 }
 
-/** Omite un conjunto de keys de un objeto o array (shallow). */
-export function omitKeys<T extends Record<string, unknown>, K extends keyof T>(
-  data: T | T[],
-  keys: readonly K[],
-): Omit<T, K> | Omit<T, K>[] {
-  if (Array.isArray(data)) {
-    return data.map((item) => omitKeys(item as T, keys)) as Omit<T, K>[]
-  }
-
-  const out: Record<string, unknown> = { ...data }
-  for (const k of keys) {
-    delete out[k as string]
-  }
-  return out as Omit<T, K>
-}
-
 /** Igual que omitTimestamps pero recursivo: también quita timestamps en objetos anidados y arrays. */
 export function omitTimestampsDeep<T>(data: T): T {
   if (Array.isArray(data)) {

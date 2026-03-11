@@ -8,7 +8,7 @@ import {
   getProductsService,
   updateProductService,
 } from '../services/product-service'
-import { omitKeys, omitTimestamps, statusCodes } from '../utils'
+import { omitTimestamps, statusCodes } from '../utils'
 import { deleteFilesFromS3, uploadFilesToS3 } from '../utils/aws'
 import { db } from '../database/db'
 import { TourDates } from '../database/schemas'
@@ -32,12 +32,16 @@ export const getProducts = async (req: Request, res: Response) => {
     const sanitized = {
       ...products,
       data: omitTimestamps(
-        omitKeys(products.data as any, [
-          'user_id',
-          'target_product_audience_id',
-          'product_category_id',
-          'product_type_id',
-        ] as const),
+        (products.data as any[]).map((p) => {
+          const {
+            user_id,
+            target_product_audience_id,
+            product_category_id,
+            product_type_id,
+            ...rest
+          } = p ?? {}
+          return rest
+        }),
       ),
     }
     res.status(200).json(sanitized)
