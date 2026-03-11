@@ -17,38 +17,69 @@ dotenv.config()
 const app = express()
 
 app.disable('x-powered-by')
+app.set('etag', false)
 
 // Si estás detrás de un proxy/load balancer (Heroku, Render, Cloudflare, etc.)
 app.set('trust proxy', 1)
 
-const allowedOrigins = (process.env.CORS_ORIGINS || '')
+const allowedOrigins = (
+  process.env.CORS_ORIGINS || 'https://www.dubuu.com,https://dubuu.com'
+)
   .split(',')
   .map((origin) => origin.trim())
   .filter(Boolean)
 
 const corsOptions: CorsOptions = {
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+    if (
+      !origin ||
+      allowedOrigins.length === 0 ||
+      allowedOrigins.includes(origin)
+    ) {
       return callback(null, true)
     }
     return callback(new Error('Not allowed by CORS'))
   },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS','PATCH'],
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization',
+    'X-Requested-With',
+    'Accept',
+  ],
 }
 
 app.use(cors(corsOptions))
 app.options('*', cors(corsOptions))
 
+const isProduction = process.env.NODE_ENV === 'production'
+
 app.use(
   helmet({
-    contentSecurityPolicy: process.env.NODE_ENV === 'production' ? undefined : false,
+    contentSecurityPolicy: isProduction ? undefined : false,
     crossOriginResourcePolicy: { policy: 'cross-origin' },
+    crossOriginOpenerPolicy: { policy: 'same-origin' },
+    crossOriginEmbedderPolicy: false,
+    referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+    hsts: isProduction
+      ? { maxAge: 31536000, includeSubDomains: true, preload: true }
+      : false,
+    noSniff: true,
+    hidePoweredBy: true,
   }),
 )
 
 app.use(hpp())
+
+// Cabeceras de seguridad adicionales
+app.use((_req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff')
+  res.setHeader('X-DNS-Prefetch-Control', 'off')
+  res.setHeader('X-Download-Options', 'noopen')
+  res.setHeader('X-Permitted-Cross-Domain-Policies', 'none')
+  next()
+})
 
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutos
@@ -78,7 +109,6 @@ app.use(
 )
 
 setupSwagger(app)
-app.use(express.json())
 
 app.use('/api/v1', wompiRouter)
 app.use('/api/v1', blinkRouter)
@@ -100,7 +130,9 @@ app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
   const isProd = process.env.NODE_ENV === 'production'
 
   const message =
-    status === 500 && isProd ? 'Internal server error' : err.message || 'Unexpected error'
+    status === 500 && isProd
+      ? 'Internal server error'
+      : err.message || 'Unexpected error'
 
   res.status(status).json({
     message,

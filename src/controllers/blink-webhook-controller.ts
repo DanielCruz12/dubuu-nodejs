@@ -7,19 +7,21 @@ import { getIO, getUserRoom } from '../socket'
 const BLINK_WEBHOOK_SECRET = process.env.BLINK_WEBHOOK_SECRET
 
 export async function handleBlinkWebhook(req: Request, res: Response) {
+  if (!BLINK_WEBHOOK_SECRET) {
+    console.error('BLINK_WEBHOOK_SECRET no configurado; webhook rechazado.')
+    return res.status(503).send('Webhook no configurado')
+  }
+
   const rawBody =
     (req as any).rawBody ??
     (typeof req.body === 'string' ? req.body : JSON.stringify(req.body ?? {}))
 
-  // Verificación de firma (Svix). Si no hay secret configurado, aceptamos igual.
-  if (BLINK_WEBHOOK_SECRET) {
-    try {
-      const wh = new Webhook(BLINK_WEBHOOK_SECRET)
-      wh.verify(rawBody, req.headers as any)
-    } catch (err) {
-      console.error('Blink webhook signature invalid:', err)
-      return res.status(403).send('Invalid webhook signature')
-    }
+  try {
+    const wh = new Webhook(BLINK_WEBHOOK_SECRET)
+    wh.verify(rawBody, req.headers as any)
+  } catch (err) {
+    console.error('Blink webhook signature invalid:', err)
+    return res.status(403).send('Firma inválida')
   }
 
   try {

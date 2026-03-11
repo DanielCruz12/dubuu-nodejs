@@ -37,9 +37,9 @@ router.use('/product-amenities', productAmenitiesRoutes)
 router.use('/product-types', productTypesRoutes)
 router.use('/product-category', productCategoriesRoutes)
 router.use('/product-audience', productAudiencesRoutes)
-router.use('/roles', rolesRoutes)
-router.use('/comments', commentsRoutes)
-router.use('/faqs', faqsRoutes)
-router.use('/blog', blogRoutes)
+router.use('/roles', requireAuth(), requireRole(['admin']), rolesRoutes)
+router.use('/comments', requireAuth(), commentsRoutes)
+router.use('/faqs', requireAuth(), faqsRoutes)
+router.use('/blog', requireAuth(), blogRoutes)
 
 export { router as apiRoutes }

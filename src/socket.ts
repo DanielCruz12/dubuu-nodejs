@@ -12,7 +12,7 @@ let io: Server | null = null
 export function initSocket(httpServer: HttpServer): Server {
   io = new Server(httpServer, {
     cors: {
-      origin: process.env.FRONTEND_URL || '*',
+      origin: process.env.FRONTEND_URL || 'https://www.dubuu.com,https://dubuu.com',
       methods: ['GET', 'POST'],
     },
     path: '/socket.io',

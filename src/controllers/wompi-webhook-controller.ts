@@ -4,9 +4,14 @@ import { updateBookingStatusByTransactionId } from '../services/booking-service'
 import { BookingStatus } from '../constants'
 import { getIO, getUserRoom } from '../socket'
 
-const WOMPI_SECRET = process.env.WOMPI_CLIENT_SECRET || 'TU_API_SECRET'
+const WOMPI_SECRET = process.env.WOMPI_CLIENT_SECRET
 
 export const handleWompiWebhook = async (req: Request, res: Response) => {
+  if (!WOMPI_SECRET) {
+    console.error('WOMPI_CLIENT_SECRET no configurado; webhook rechazado.')
+    return res.status(503).send('Webhook no configurado')
+  }
+
   const rawBody = (req as any).rawBody
   const wompiHashHeader = req.headers['wompi_hash']
 
@@ -15,11 +20,11 @@ export const handleWompiWebhook = async (req: Request, res: Response) => {
   }
 
   const hmac = crypto.createHmac('sha256', WOMPI_SECRET)
-  hmac.update(rawBody)
+  hmac.update(rawBody ?? '')
   const calculatedHash = hmac.digest('hex')
 
   if (calculatedHash !== wompiHashHeader) {
-    return res.status(403).send('☠️❌❌Hash inválido')
+    return res.status(403).send('Firma inválida')
   }
 
   const webhookData = req.body
