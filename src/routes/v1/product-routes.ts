@@ -10,6 +10,7 @@ import {
 } from '../../controllers/product-controller'
 import { requireAuth } from '@clerk/express'
 import { upload } from '../../middlewares/multer'
+import { requireRole } from '../../middlewares/role-validator'
 
 const router = express.Router()
 
@@ -20,7 +21,8 @@ router.get('/usersimplified/:id', requireAuth(), getProductsByUserIdSimplified)
 
 router.post(
   '/',
-
+  requireAuth(),
+  requireRole(['host', 'admin']),
   upload.fields([
     { name: 'images', maxCount: 10 },
     { name: 'banner', maxCount: 1 },
@@ -30,10 +32,10 @@ router.post(
   createProduct,
 )
 
-router.patch('/:id', requireAuth(), updateProduct)
+router.patch('/:id', requireAuth(), requireRole(['host', 'admin']), updateProduct)
 
 // Eliminar producto (siempre con archivos)
-router.delete('/:id', requireAuth(), deleteProduct)
+router.delete('/:id', requireAuth(), requireRole(['host', 'admin']), deleteProduct)
 
 // Middleware para manejar errores de Multer
 router.use(
