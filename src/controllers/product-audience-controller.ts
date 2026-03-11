@@ -13,7 +13,8 @@ export const getTargetProductAudiences = async (
   res: Response,
 ) => {
   try {
-    const audiences = await getTargetProductAudiencesService(req)
+    const locale = req.query.locale as string | undefined
+    const audiences = await getTargetProductAudiencesService(req, locale)
     res.status(200).json(omitTimestamps(audiences))
   } catch (error: any) {
     const message = statusCodes[error.status] || 'Internal Server Error'

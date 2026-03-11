@@ -11,7 +11,8 @@ import {
 // Obtener todos los amenities
 export const getProductAmenities = async (req: Request, res: Response) => {
   try {
-    const productAmenities = await getProductAmenitiesService(req)
+    const locale = req.query.locale as string | undefined
+    const productAmenities = await getProductAmenitiesService(req, locale)
     res.status(200).json(omitTimestamps(productAmenities))
   } catch (error: any) {
     const message = statusCodes[error.status] || 'Internal Server Error'

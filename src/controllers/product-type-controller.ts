@@ -10,7 +10,8 @@ import {
 
 export const getProductTypes = async (req: Request, res: Response) => {
   try {
-    const types = await getProductTypesService()
+    const locale = req.query.locale as string | undefined
+    const types = await getProductTypesService(locale)
     res.status(200).json(omitTimestamps(types))
   } catch (error: any) {
     res.status(500).json({ error: error.message })
@@ -20,7 +21,8 @@ export const getProductTypes = async (req: Request, res: Response) => {
 export const getProductTypeById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params
-    const type = await getProductTypeByIdService(id)
+    const locale = req.query.locale as string | undefined
+    const type = await getProductTypeByIdService(id, locale)
     res.status(200).json(omitTimestamps(type))
   } catch (error: any) {
     res.status(404).json({ error: error.message })

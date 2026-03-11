@@ -10,7 +10,8 @@ import {
 
 export const getProductCategories = async (req: Request, res: Response) => {
   try {
-    const categories = await getProductCategoriesService()
+    const locale = req.query.locale as string | undefined
+    const categories = await getProductCategoriesService(locale)
     res.status(200).json(omitTimestamps(categories))
   } catch (error: any) {
     const message = statusCodes[error.status] || 'Internal Server Error'
