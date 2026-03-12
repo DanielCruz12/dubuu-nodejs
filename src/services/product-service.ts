@@ -33,6 +33,20 @@ import { getRentalById } from '../handlers/get-rental'
 import { createRentalHandler } from '../handlers/create-rental'
 import { saveProductWithTranslations } from './product-translations-service'
 
+const normalizeProductTypeName = (name: string) => {
+  const normalized = name.trim().toLowerCase()
+
+  if (['tours', 'tour', 'viajes', 'viaje'].includes(normalized)) {
+    return 'tour'
+  }
+
+  if (['rental', 'rentals', 'alquiler', 'alquileres'].includes(normalized)) {
+    return 'rental'
+  }
+
+  return normalized
+}
+
 export const getProductsService = async (req: Request) => {
   const limit = parseInt(req.query.limit as string) || 10
   const cursor = req.query.cursor as string | undefined
@@ -177,10 +191,10 @@ export const getProductByIdService = async (
   const baseProduct = await getBaseProductInfo(productId, locale)
   if (!baseProduct) return null
 
-  const category = baseProduct.product_type.name
+  const category = normalizeProductTypeName(baseProduct.product_type.name)
 
   switch (category) {
-    case 'tours':
+    case 'tour':
       return await getTourById(productId, baseProduct, locale)
     case 'rental':
       return await getRentalById(productId, baseProduct)
@@ -202,10 +216,10 @@ export const getProductsByUserIdService = async (
       const baseProduct = await getBaseProductInfo(id, lang)
       if (!baseProduct) return null
 
-      const category = baseProduct.product_type.name
+      const category = normalizeProductTypeName(baseProduct.product_type.name)
 
       switch (category) {
-        case 'tours':
+        case 'tour':
           return await getTourById(id, baseProduct, lang)
         case 'rental':
           return await getRentalById(id, baseProduct)
@@ -231,10 +245,10 @@ export const getProductsByUserIdSimplifiedService = async (
       const baseProduct = await getBaseProductInfoSimplified(id, lang)
       if (!baseProduct) return null
 
-      const category = baseProduct.product_type.name
+      const category = normalizeProductTypeName(baseProduct.product_type.name)
 
       switch (category) {
-        case 'tours':
+        case 'tour':
           return await getTourById(id, baseProduct, lang)
         case 'rental':
           return await getRentalById(id, baseProduct)
@@ -308,10 +322,10 @@ export const createProductService = async (productData: any) => {
       })
       .returning()
 
-    const typeName = (type as { name: string }).name.toLowerCase()
+    const typeName = normalizeProductTypeName((type as { name: string }).name)
 
     switch (typeName) {
-      case 'tours':
+      case 'tour':
         await createTourHandler(productData, newProduct.id)
         break
 
