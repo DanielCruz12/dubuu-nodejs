@@ -63,7 +63,7 @@ export const updateUser = async (req: Request, res: Response) => {
     country,
   } = req.body
 
-  if (!email || !username || !first_name || !last_name || !phone_number) {
+  if (!email || !username || !first_name || !last_name) {
     return res.status(400).json({
       message: 'Email, username, first name, and last name son requeridos',
     })

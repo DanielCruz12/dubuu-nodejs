@@ -2,6 +2,7 @@ import { Request, Response } from 'express'
 import { Webhook } from 'svix'
 import { createUser, deleteUser, updateUser } from './user-controller'
 import { clerkClient } from '@clerk/express'
+import { getUserByIdService } from '../services/user-service'
 
 export const handleClerkWebHook = async (req: Request, res: Response) => {
   //* Retrieve the webhook secret from environment variables
@@ -48,6 +49,14 @@ export const handleClerkWebHook = async (req: Request, res: Response) => {
 
   const { email_addresses, first_name, last_name, id, username } = evt.data
   const eventType = evt.type
+  const primaryId = evt.data.primary_email_address_id
+  const safeEmail =
+    (primaryId
+      ? email_addresses?.find((e: any) => e.id === primaryId)?.email_address
+      : null) ?? email_addresses?.[0]?.email_address ?? ''
+  const safeUsername = username ?? ''
+  const safeFirstName = first_name ?? ''
+  const safeLastName = last_name ?? ''
 
   try {
     let result
@@ -58,13 +67,12 @@ export const handleClerkWebHook = async (req: Request, res: Response) => {
       case 'user.createdAtEdge':
         result = await createUser({
           body: {
-            email: email_addresses[0].email_address,
+            email: safeEmail,
             id,
-            //* Clerk user image
             image_url: evt.data.image_url || '',
-            first_name: `${first_name}`,
-            last_name: `${last_name}`,
-            username,
+            first_name: safeFirstName,
+            last_name: safeLastName,
+            username: safeUsername,
           },
         } as Request)
 
@@ -76,21 +84,29 @@ export const handleClerkWebHook = async (req: Request, res: Response) => {
 
         break
 
-      case 'user.updated':
+      case 'user.updated': {
+        const existingUser = await getUserByIdService(id).catch(() => null)
         result = await updateUser(
           {
             params: { id },
             body: {
-              email: email_addresses[0].email_address,
-              first_name,
+              email: safeEmail,
+              first_name: safeFirstName,
               image_url: evt.data.image_url || '',
-              last_name,
-              username,
+              last_name: safeLastName,
+              username: safeUsername,
+              phone_number: existingUser?.phone_number ?? '',
+              address: existingUser?.address,
+              city: existingUser?.city,
+              id_region: existingUser?.id_region,
+              zip_code: existingUser?.zip_code,
+              country: existingUser?.country,
             },
           } as any,
           res,
         )
         break
+      }
 
       case 'user.deleted':
         result = await deleteUser({
