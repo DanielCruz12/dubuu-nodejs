@@ -29,7 +29,6 @@ const getProductTypeAndCategory = async (
 export const getProducts = async (req: Request, res: Response) => {
   try {
     const locale = req.query.locale as string | undefined
-    console.log('[getProducts] query:', { ...req.query, locale, localeType: typeof locale })
     const products = await getProductsService(req, locale)
     const sanitized = {
       ...products,

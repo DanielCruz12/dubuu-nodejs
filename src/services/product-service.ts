@@ -47,6 +47,12 @@ const normalizeProductTypeName = (name: string) => {
   return normalized
 }
 
+/** Nombres posibles del tipo por idioma (en DB puede estar "tours" en en, "viajes" en es). */
+const PRODUCT_TYPE_NAME_ALIASES: Record<string, string[]> = {
+  tour: ['tours', 'tour', 'viajes', 'viaje'],
+  rental: ['rental', 'rentals', 'alquiler', 'alquileres'],
+}
+
 export const getProductsService = async (
   req: Request,
   locale?: string,
@@ -56,15 +62,11 @@ export const getProductsService = async (
   const defaultLocale = getDefaultLocale()
   const lang = locale ?? defaultLocale
 
-  console.log('[getProductsService]', {
-    localeReceived: locale,
-    defaultLocale,
-    langUsed: lang,
-    hasLocale: locale != null && locale !== '',
-  })
-
-  const productTypeName =
+  const productTypeParam =
     req.query.product_type?.toString().toLowerCase() || 'tours'
+  const productTypeKey = normalizeProductTypeName(productTypeParam)
+  const typeNameAliases =
+    PRODUCT_TYPE_NAME_ALIASES[productTypeKey] ?? [productTypeParam]
   const search = req.query.search?.toString()
   const country = req.query.country?.toString()
   const minPrice = req.query.min_price
@@ -81,7 +83,11 @@ export const getProductsService = async (
     : undefined
 
   const whereConditions = [
-    ilike(ProductTypeTranslations.name, productTypeName),
+    or(
+      ...typeNameAliases.map((alias) =>
+        ilike(ProductTypeTranslations.name, alias),
+      ),
+    ),
     ...(search
       ? [
           or(
@@ -180,12 +186,6 @@ export const getProductsService = async (
     .where(and(...whereConditions))
     .orderBy(desc(Products.created_at), desc(Products.id))
     .limit(limit + 1)
-
-  console.log('[getProductsService] result:', {
-    langUsed: lang,
-    productCount: products.length,
-    productTypeName,
-  })
 
   const hasMore = products.length > limit
   const results = hasMore ? products.slice(0, limit) : products
