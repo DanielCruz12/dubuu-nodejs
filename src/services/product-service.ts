@@ -53,7 +53,15 @@ export const getProductsService = async (
 ) => {
   const limit = parseInt(req.query.limit as string) || 10
   const cursor = req.query.cursor as string | undefined
-  const lang = locale ?? getDefaultLocale()
+  const defaultLocale = getDefaultLocale()
+  const lang = locale ?? defaultLocale
+
+  console.log('[getProductsService]', {
+    localeReceived: locale,
+    defaultLocale,
+    langUsed: lang,
+    hasLocale: locale != null && locale !== '',
+  })
 
   const productTypeName =
     req.query.product_type?.toString().toLowerCase() || 'tours'
@@ -172,6 +180,12 @@ export const getProductsService = async (
     .where(and(...whereConditions))
     .orderBy(desc(Products.created_at), desc(Products.id))
     .limit(limit + 1)
+
+  console.log('[getProductsService] result:', {
+    langUsed: lang,
+    productCount: products.length,
+    productTypeName,
+  })
 
   const hasMore = products.length > limit
   const results = hasMore ? products.slice(0, limit) : products
