@@ -28,7 +28,8 @@ const getProductTypeAndCategory = async (
 
 export const getProducts = async (req: Request, res: Response) => {
   try {
-    const products = await getProductsService(req)
+    const locale = req.query.locale as string | undefined
+    const products = await getProductsService(req, locale)
     const sanitized = {
       ...products,
       data: omitTimestamps(
