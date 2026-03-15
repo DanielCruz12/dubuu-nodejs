@@ -21,6 +21,8 @@ import { eq, and, ilike, gte, lte, desc, or, lt } from 'drizzle-orm'
 import {
   getDefaultLocale,
   getEnabledLocales,
+  getFallbackLocale,
+  normalizeLocale,
 } from './translation-service'
 import { getProductTypeByIdService } from './product-type-service'
 import { createTourHandler } from '../handlers/create-tour'
@@ -50,7 +52,7 @@ const normalizeProductTypeName = (name: string) => {
 export const getProductsService = async (req: Request) => {
   const limit = parseInt(req.query.limit as string) || 10
   const cursor = req.query.cursor as string | undefined
-  const locale = (req.query.locale as string) ?? getDefaultLocale()
+  const locale = normalizeLocale(req.query.locale as string)
 
   const productTypeName =
     req.query.product_type?.toString().toLowerCase() || 'tours'
@@ -69,106 +71,113 @@ export const getProductsService = async (req: Request) => {
     ? parseFloat(req.query.min_rating as string)
     : undefined
 
-  const whereConditions = [
-    ilike(ProductTypeTranslations.name, productTypeName),
-    ...(search
-      ? [
-          or(
-            ilike(ProductTranslations.name, `%${search}%`),
-            ilike(ProductTranslations.description, `%${search}%`),
-          ),
-        ]
-      : []),
-    ...(country ? [eq(Products.country, country)] : []),
-    ...(req.query.is_approved
-      ? [eq(Products.is_approved, req.query.is_approved === 'true')]
-      : []),
-    ...(minPrice !== undefined ? [gte(Products.price, String(minPrice))] : []),
-    ...(maxPrice !== undefined ? [lte(Products.price, String(maxPrice))] : []),
-    ...(is_active !== undefined ? [eq(Products.is_active, is_active)] : []),
-    ...(minRating !== undefined
-      ? [gte(Products.average_rating, String(minRating))]
-      : []),
-    ...(cursor ? [lt(Products.created_at, new Date(cursor))] : []),
-  ]
+  const runQuery = async (effectiveLocale: string) =>
+    db
+      .select({
+        id: Products.id,
+        name: ProductTranslations.name,
+        description: ProductTranslations.description,
+        address: ProductTranslations.address,
+        user_id: Products.user_id,
+        price: Products.price,
+        country: Products.country,
+        is_approved: Products.is_approved,
+        images: Products.images,
+        files: Products.files,
+        videos: Products.videos,
+        banner: Products.banner,
+        is_active: Products.is_active,
+        average_rating: Products.average_rating,
+        total_reviews: Products.total_reviews,
+        created_at: Products.created_at,
+        updated_at: Products.updated_at,
+        product_category_id: Products.product_category_id,
+        target_product_audience_id: Products.target_product_audience_id,
+        product_type_id: Products.product_type_id,
+        product_category: {
+          id: ProductCategories.id,
+          name: ProductCategoryTranslations.name,
+        },
+        target_audience: {
+          id: TargetProductAudiences.id,
+          name: TargetProductAudienceTranslations.name,
+        },
+        product_type: {
+          id: ProductTypes.id,
+          name: ProductTypeTranslations.name,
+        },
+      })
+      .from(Products)
+      .innerJoin(
+        ProductTranslations,
+        and(
+          eq(Products.id, ProductTranslations.product_id),
+          eq(ProductTranslations.locale, effectiveLocale),
+        ),
+      )
+      .leftJoin(Ratings, eq(Products.id, Ratings.product_id))
+      .innerJoin(
+        ProductCategories,
+        eq(Products.product_category_id, ProductCategories.id),
+      )
+      .innerJoin(
+        ProductCategoryTranslations,
+        and(
+          eq(ProductCategories.id, ProductCategoryTranslations.category_id),
+          eq(ProductCategoryTranslations.locale, effectiveLocale),
+        ),
+      )
+      .innerJoin(
+        TargetProductAudiences,
+        eq(Products.target_product_audience_id, TargetProductAudiences.id),
+      )
+      .innerJoin(
+        TargetProductAudienceTranslations,
+        and(
+          eq(TargetProductAudiences.id, TargetProductAudienceTranslations.audience_id),
+          eq(TargetProductAudienceTranslations.locale, effectiveLocale),
+        ),
+      )
+      .innerJoin(ProductTypes, eq(Products.product_type_id, ProductTypes.id))
+      .innerJoin(
+        ProductTypeTranslations,
+        and(
+          eq(ProductTypes.id, ProductTypeTranslations.product_type_id),
+          eq(ProductTypeTranslations.locale, effectiveLocale),
+        ),
+      )
+      .where(
+        and(
+          ilike(ProductTypeTranslations.name, productTypeName),
+          ...(search
+            ? [
+                or(
+                  ilike(ProductTranslations.name, `%${search}%`),
+                  ilike(ProductTranslations.description, `%${search}%`),
+                ),
+              ]
+            : []),
+          ...(country ? [eq(Products.country, country)] : []),
+          ...(req.query.is_approved
+            ? [eq(Products.is_approved, req.query.is_approved === 'true')]
+            : []),
+          ...(minPrice !== undefined ? [gte(Products.price, String(minPrice))] : []),
+          ...(maxPrice !== undefined ? [lte(Products.price, String(maxPrice))] : []),
+          ...(is_active !== undefined ? [eq(Products.is_active, is_active)] : []),
+          ...(minRating !== undefined
+            ? [gte(Products.average_rating, String(minRating))]
+            : []),
+          ...(cursor ? [lt(Products.created_at, new Date(cursor))] : []),
+        ),
+      )
+      .orderBy(desc(Products.created_at), desc(Products.id))
+      .limit(limit + 1)
 
-  const products = await db
-    .select({
-      id: Products.id,
-      name: ProductTranslations.name,
-      description: ProductTranslations.description,
-      address: ProductTranslations.address,
-      user_id: Products.user_id,
-      price: Products.price,
-      country: Products.country,
-      is_approved: Products.is_approved,
-      images: Products.images,
-      files: Products.files,
-      videos: Products.videos,
-      banner: Products.banner,
-      is_active: Products.is_active,
-      average_rating: Products.average_rating,
-      total_reviews: Products.total_reviews,
-      created_at: Products.created_at,
-      updated_at: Products.updated_at,
-      product_category_id: Products.product_category_id,
-      target_product_audience_id: Products.target_product_audience_id,
-      product_type_id: Products.product_type_id,
-      product_category: {
-        id: ProductCategories.id,
-        name: ProductCategoryTranslations.name,
-      },
-      target_audience: {
-        id: TargetProductAudiences.id,
-        name: TargetProductAudienceTranslations.name,
-      },
-      product_type: {
-        id: ProductTypes.id,
-        name: ProductTypeTranslations.name,
-      },
-    })
-    .from(Products)
-    .innerJoin(
-      ProductTranslations,
-      and(
-        eq(Products.id, ProductTranslations.product_id),
-        eq(ProductTranslations.locale, locale),
-      ),
-    )
-    .leftJoin(Ratings, eq(Products.id, Ratings.product_id))
-    .innerJoin(
-      ProductCategories,
-      eq(Products.product_category_id, ProductCategories.id),
-    )
-    .innerJoin(
-      ProductCategoryTranslations,
-      and(
-        eq(ProductCategories.id, ProductCategoryTranslations.category_id),
-        eq(ProductCategoryTranslations.locale, locale),
-      ),
-    )
-    .innerJoin(
-      TargetProductAudiences,
-      eq(Products.target_product_audience_id, TargetProductAudiences.id),
-    )
-    .innerJoin(
-      TargetProductAudienceTranslations,
-      and(
-        eq(TargetProductAudiences.id, TargetProductAudienceTranslations.audience_id),
-        eq(TargetProductAudienceTranslations.locale, locale),
-      ),
-    )
-    .innerJoin(ProductTypes, eq(Products.product_type_id, ProductTypes.id))
-    .innerJoin(
-      ProductTypeTranslations,
-      and(
-        eq(ProductTypes.id, ProductTypeTranslations.product_type_id),
-        eq(ProductTypeTranslations.locale, locale),
-      ),
-    )
-    .where(and(...whereConditions))
-    .orderBy(desc(Products.created_at), desc(Products.id))
-    .limit(limit + 1)
+  let products = await runQuery(locale)
+  const fallback = getFallbackLocale(locale)
+  if (products.length === 0 && fallback) {
+    products = await runQuery(fallback)
+  }
 
   const hasMore = products.length > limit
   const results = hasMore ? products.slice(0, limit) : products

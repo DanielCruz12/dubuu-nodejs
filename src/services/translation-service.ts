@@ -37,6 +37,25 @@ export function getDefaultLocale(): string {
 }
 
 /**
+ * Normaliza el locale a 2 caracteres en minúscula (ej. "ES", "es-SV" → "es").
+ * Así las consultas coinciden con las filas en product_translations.
+ */
+export function normalizeLocale(locale: string | undefined): string {
+  const s = (locale ?? '').trim().toLowerCase().slice(0, 2)
+  return ENABLED_LOCALES.includes(s) ? s : getDefaultLocale()
+}
+
+/**
+ * Devuelve un locale de respaldo (ej. 'en' cuando pides 'es') para reintentar
+ * si no hay resultados porque faltan traducciones en tipo/categoría/audiencia.
+ */
+export function getFallbackLocale(requestedLocale: string): string | null {
+  const requested = normalizeLocale(requestedLocale)
+  const other = ENABLED_LOCALES.find((l) => l !== requested)
+  return other ?? null
+}
+
+/**
  * Detecta el idioma de un texto con Google Cloud Translation API (v2 detect).
  * Devuelve código ISO 639-1 (ej. 'es', 'en'). Si falla, devuelve 'en'.
  */
