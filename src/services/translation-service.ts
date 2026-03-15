@@ -4,6 +4,21 @@ import axios from 'axios'
 function getGoogleTranslateApiKey(): string | undefined {
   return process.env.GOOGLE_TRANSLATE_API_KEY?.trim() || undefined
 }
+
+/**
+ * Referer para peticiones a Google Translation API.
+ * Si la clave está restringida a "Sitios web" (dubuu.com), las peticiones desde el backend
+ * deben enviar este header para que Google no bloquee con 403 "Requests from referer <empty> are blocked".
+ * Usa GOOGLE_TRANSLATE_REFERER o FRONTEND_URL; si no, por defecto https://www.dubuu.com/
+ */
+function getGoogleTranslateReferer(): string {
+  const ref =
+    process.env.GOOGLE_TRANSLATE_REFERER?.trim() ||
+    process.env.FRONTEND_URL?.trim() ||
+    'https://www.dubuu.com/'
+  return ref.endsWith('/') ? ref : `${ref}/`
+}
+
 const BASE_URL = 'https://translation.googleapis.com/language/translate/v2'
 
 /** Idiomas habilitados en la app. Añadir más en el futuro (ej. 'pt') aquí o por env ENABLED_LOCALES=es,en,pt */
@@ -41,7 +56,10 @@ export async function detectLanguage(text: string): Promise<string> {
       'https://translation.googleapis.com/language/translate/v2/detect',
       body,
       {
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          Referer: getGoogleTranslateReferer(),
+        },
         maxBodyLength: Infinity,
       },
     )
@@ -94,7 +112,10 @@ export async function translateText(
     })
     if (sourceLocale) params.set('source', sourceLocale.slice(0, 2))
     const { data } = await axios.post(BASE_URL, params.toString(), {
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        Referer: getGoogleTranslateReferer(),
+      },
       maxBodyLength: Infinity,
     })
     return data?.data?.translations?.[0]?.translatedText ?? text
@@ -139,7 +160,10 @@ export async function translateTexts(
     filtered.forEach((t) => search.append('q', t))
 
     const { data } = await axios.post(BASE_URL, search.toString(), {
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        Referer: getGoogleTranslateReferer(),
+      },
       maxBodyLength: Infinity,
     })
 
