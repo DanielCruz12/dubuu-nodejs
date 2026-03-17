@@ -22,7 +22,7 @@ router.get('/usersimplified/:id', requireAuth(), getProductsByUserIdSimplified)
 router.post(
   '/',
   requireAuth(),
-  requireRole(['host', 'admin']),
+  requireRole(['host']),
   upload.fields([
     { name: 'images', maxCount: 10 },
     { name: 'banner', maxCount: 1 },
@@ -32,10 +32,15 @@ router.post(
   createProduct,
 )
 
-router.patch('/:id', requireAuth(), requireRole(['host', 'admin']), updateProduct)
+router.patch('/:id', requireAuth(), requireRole(['host']), updateProduct)
 
 // Eliminar producto (siempre con archivos)
-router.delete('/:id', requireAuth(), requireRole(['host', 'admin']), deleteProduct)
+router.delete(
+  '/:id',
+  requireAuth(),
+  requireRole(['host']),
+  deleteProduct,
+)
 
 // Middleware para manejar errores de Multer
 router.use(
