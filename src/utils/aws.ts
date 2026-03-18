@@ -15,10 +15,11 @@ export const uploadFilesToS3 = async (
   typeName: string,
   categoryName: string,
 ) => {
+  const timestamp = Date.now()
   return Promise.all(
-    files.map(async (file) => {
-      const timestamp = Date.now()
-      const fileName = `${timestamp}-${file.originalname}`
+    files.map(async (file, index) => {
+      // Índice evita colisiones cuando varios archivos se suben en el mismo ms con el mismo nombre (ej. "blob")
+      const fileName = `${timestamp}-${index}-${file.originalname}`
 
       const uploadParams = {
         Bucket: process.env.S3_BUCKET_NAME,
