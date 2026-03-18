@@ -19,8 +19,7 @@
     "dz:check": "npx drizzle-kit check",
     "dz:up": "npx drizzle-kit up",
     "dz:dp": "npx drizzle-kit drop",
-    "dz:studio": "npx drizzle-kit studio",
-    "seed": "ts-node scripts/seed.ts"
+    "dz:studio": "npx drizzle-kit studio"
   },
   "keywords": [
     "api-rest"
@@ -41,6 +40,7 @@
     "dotenv": "^16.4.7",
     "express": "^4.21.0",
     "express-rate-limit": "^7.1.5",
+    "firebase-admin": "^13.7.0",
     "helmet": "^7.0.0",
     "hpp": "^0.2.3",
     "jsonwebtoken": "^9.0.2",

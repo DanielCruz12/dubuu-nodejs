@@ -12,7 +12,7 @@ import { getDefaultLocale } from './translation-service'
 import moment from 'moment'
 import 'moment/locale/es'
 import { decrypt } from '../utils/crypto'
-import { BookingStatus, type BookingStatusType } from '../constants'
+import { BookingStatus } from '../constants'
 
 // 🔍 Obtener todas las reservas de un usuario (para getUserBookings)
 export const getUserBookingsService = async (
@@ -391,7 +391,10 @@ export const updateBookingService = async (
 
 export const updateBookingStatusByTransactionId = async (
   transactionId: string,
-  newStatus: BookingStatusType,
+  newStatus:
+    | typeof BookingStatus.IN_PROCESS
+    | typeof BookingStatus.COMPLETED
+    | typeof BookingStatus.CANCELED,
 ) => {
   if (!transactionId) {
     const error: any = new Error('El ID de la transacción es obligatorio.')
