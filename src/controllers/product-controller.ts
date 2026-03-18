@@ -123,17 +123,46 @@ export const createProduct = async (req: Request, res: Response) => {
     productData.banner = productData.banner || ''
 
     const files = req.files as {
-      images?: Express.Multer.File[]
-      banner?: Express.Multer.File[]
-      files?: Express.Multer.File[]
-      videos?: Express.Multer.File[]
+      images?: Express.Multer.File[] | Express.Multer.File
+      banner?: Express.Multer.File[] | Express.Multer.File
+      files?: Express.Multer.File[] | Express.Multer.File
+      videos?: Express.Multer.File[] | Express.Multer.File
     }
 
-    if (files) {
-      // Subir imágenes
-      if (files['images'] && files['images'].length > 0) {
+    // Normalizar a array: Multer a veces devuelve un solo File en lugar de File[] cuando hay 1 archivo
+    const toFileArray = (
+      field: Express.Multer.File[] | Express.Multer.File | undefined,
+    ): Express.Multer.File[] =>
+      !field ? [] : Array.isArray(field) ? field : [field]
+
+    const imageFiles = toFileArray(files?.images)
+    const bannerFiles = toFileArray(files?.banner)
+    const extraFiles = toFileArray(files?.files)
+    const videoFiles = toFileArray(files?.videos)
+
+    if (
+      imageFiles.length > 0 ||
+      bannerFiles.length > 0 ||
+      extraFiles.length > 0 ||
+      videoFiles.length > 0
+    ) {
+      // Depuración: ver cuántos archivos llegan (quitar o reducir en producción si molesta)
+      console.log(
+        '[createProduct] Archivos recibidos:',
+        'images=',
+        imageFiles.length,
+        'banner=',
+        bannerFiles.length,
+        'files=',
+        extraFiles.length,
+        'videos=',
+        videoFiles.length,
+      )
+
+      // Subir imágenes (todas las que lleguen con el campo "images")
+      if (imageFiles.length > 0) {
         const uploadedImages = await uploadFilesToS3(
-          files['images'],
+          imageFiles,
           'images',
           typeName,
           categoryName,
@@ -142,9 +171,9 @@ export const createProduct = async (req: Request, res: Response) => {
       }
 
       // Subir banner
-      if (files['banner'] && files['banner'].length > 0) {
+      if (bannerFiles.length > 0) {
         const uploadedBanner = await uploadFilesToS3(
-          [files['banner'][0]],
+          [bannerFiles[0]],
           'banners',
           typeName,
           categoryName,
@@ -153,9 +182,9 @@ export const createProduct = async (req: Request, res: Response) => {
       }
 
       // Subir archivos adicionales
-      if (files['files'] && files['files'].length > 0) {
+      if (extraFiles.length > 0) {
         const uploadedFiles = await uploadFilesToS3(
-          files['files'],
+          extraFiles,
           'files',
           typeName,
           categoryName,
@@ -164,9 +193,9 @@ export const createProduct = async (req: Request, res: Response) => {
       }
 
       // Subir videos
-      if (files['videos'] && files['videos'].length > 0) {
+      if (videoFiles.length > 0) {
         const uploadedVideos = await uploadFilesToS3(
-          files['videos'],
+          videoFiles,
           'videos',
           typeName,
           categoryName,
