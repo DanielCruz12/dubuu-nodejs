@@ -17,12 +17,8 @@ import { favoritesRoutes } from './favorite-routes'
 import { contactRoutes } from './contact-routes'
 import blogRoutes from './blog-routes'
 import { panelRoutes } from './panel-routes'
-import { testNotificationHandler } from '../../handlers/test-notification'
 
 const router = express.Router()
-
-// Prueba de notificaciones FCM (sin auth para poder probar con Postman)
-router.post('/test-notification', testNotificationHandler)
 
 router.use('/ratings', ratingRoutes)
 router.use('/users', requireAuth(), userRoutes)
