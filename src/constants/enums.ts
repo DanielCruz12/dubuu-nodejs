@@ -19,3 +19,13 @@ export const BookingStatus = {
 
 export type BookingStatusType =
   (typeof BookingStatus)[keyof typeof BookingStatus]
+
+/** Estado de una fecha concreta del tour (no del producto global) */
+export const TourDateStatus = {
+  ACTIVE: 'active',
+  CANCELLED: 'cancelled',
+  COMPLETED: 'completed',
+} as const
+
+export type TourDateStatusType =
+  (typeof TourDateStatus)[keyof typeof TourDateStatus]

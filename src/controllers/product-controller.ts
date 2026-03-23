@@ -12,7 +12,9 @@ import { omitTimestamps, statusCodes } from '../utils'
 import { deleteFilesFromS3, uploadFilesToS3 } from '../utils/aws'
 import { db } from '../database/db'
 import { TourDates } from '../database/schemas'
-import { eq } from 'drizzle-orm'
+
+type TourDateRow = InferSelectModel<typeof TourDates>
+import { and, eq, type InferSelectModel } from 'drizzle-orm'
 
 // Función para obtener nombres de tipo y categoría
 const getProductTypeAndCategory = async (
@@ -222,8 +224,8 @@ export const createProduct = async (req: Request, res: Response) => {
 export const updateProduct = async (req: Request, res: Response) => {
   try {
     const productId = req.params.id
-    const updateData = { ...req.body }
-    const { selectedDateId } = updateData
+    const updateData = { ...req.body } as Record<string, unknown>
+    const { selectedDateId, update_all_tour_dates } = updateData
 
     // Verificar que el producto existe
     const existingProduct = await getProductByIdService(productId)
@@ -240,18 +242,36 @@ export const updateProduct = async (req: Request, res: Response) => {
     }
 
     // Verificar que el usuario es el propietario del producto
-    if ((existingProduct as any).user_id !== userId) {
+    if ((existingProduct as { user_id?: string }).user_id !== userId) {
       return res
         .status(403)
         .json({ message: 'No tienes permiso para actualizar este producto.' })
     }
 
-    // Si se está actualizando una fecha específica, verificar que existe
+    const wantsDateFields =
+      updateData.price !== undefined ||
+      updateData.max_people !== undefined ||
+      updateData.status !== undefined
+
+    if (wantsDateFields && update_all_tour_dates && selectedDateId) {
+      return res.status(400).json({
+        message:
+          'No combines selectedDateId con update_all_tour_dates; usa solo uno.',
+      })
+    }
+
+    if (wantsDateFields && !update_all_tour_dates && !selectedDateId) {
+      return res.status(400).json({
+        message:
+          'Para precio, max_people o status de fechas, envía selectedDateId o update_all_tour_dates: true.',
+      })
+    }
+
     if (selectedDateId) {
       const [tourDate] = await db
         .select()
         .from(TourDates)
-        .where(eq(TourDates.id, selectedDateId))
+        .where(eq(TourDates.id, selectedDateId as string))
 
       if (!tourDate) {
         return res
@@ -259,16 +279,14 @@ export const updateProduct = async (req: Request, res: Response) => {
           .json({ message: 'Fecha del tour no encontrada.' })
       }
 
-      // Verificar que la fecha pertenece a este tour
       if (tourDate.tour_id !== productId) {
         return res
           .status(400)
           .json({ message: 'La fecha seleccionada no pertenece a este tour.' })
       }
 
-      // Si se está actualizando max_people, verificar que no sea menor que people_booked
       if (updateData.max_people !== undefined) {
-        const maxPeople = parseInt(updateData.max_people)
+        const maxPeople = parseInt(String(updateData.max_people), 10)
         if (maxPeople < tourDate.people_booked) {
           return res.status(400).json({
             message: `El máximo de personas no puede ser menor que las reservas actuales (${tourDate.people_booked}).`,
@@ -277,22 +295,47 @@ export const updateProduct = async (req: Request, res: Response) => {
       }
     }
 
-    // Actualizar producto en la base de datos
-    const updatedProduct = await updateProductService(productId, updateData)
-
-    // Obtener la fecha actualizada si se modificó
-    let updatedTourDate = null
-    if (selectedDateId) {
-      ;[updatedTourDate] = await db
+    if (update_all_tour_dates && updateData.max_people !== undefined) {
+      const allDates = await db
         .select()
         .from(TourDates)
-        .where(eq(TourDates.id, selectedDateId))
+        .where(eq(TourDates.tour_id, productId))
+      const maxPeople = parseInt(String(updateData.max_people), 10)
+      for (const d of allDates) {
+        if (maxPeople < d.people_booked) {
+          return res.status(400).json({
+            message: `El máximo de personas no puede ser menor que las reservas en la fecha ${d.date.toISOString()} (${d.people_booked} reservas).`,
+          })
+        }
+      }
     }
 
-    // Preparar respuesta
+    const updatedProduct = await updateProductService(productId, updateData)
+
+    let updatedTourDates: TourDateRow[] | null = null
+    if (wantsDateFields && update_all_tour_dates) {
+      updatedTourDates = await db
+        .select()
+        .from(TourDates)
+        .where(eq(TourDates.tour_id, productId))
+    } else if (wantsDateFields && selectedDateId) {
+      const [one] = await db
+        .select()
+        .from(TourDates)
+        .where(
+          and(
+            eq(TourDates.id, selectedDateId as string),
+            eq(TourDates.tour_id, productId),
+          ),
+        )
+      updatedTourDates = one ? [one] : null
+    }
+
     const response = {
       product: updatedProduct,
-      ...(updatedTourDate ? { tourDate: updatedTourDate } : {}),
+      ...(updatedTourDates
+        ? { tourDates: updatedTourDates }
+        : {}),
     }
 
     res.status(200).json(response)

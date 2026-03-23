@@ -20,14 +20,12 @@ export const Products = pgTable('products', {
   user_id: text()
     .references(() => Users.id, { onDelete: 'cascade' })
     .notNull(),
-  price: decimal({ precision: 10, scale: 2 }).notNull(),
   country: varchar({ length: 100 }).notNull(),
   is_approved: boolean().notNull().default(false),
   images: text('images').array().default(['']),
   files: text('files').array().default(['']),
   videos: text('videos').array().default(['']),
   banner: text('banner'),
-  is_active: boolean().notNull().default(true),
   average_rating: decimal('average_rating', { precision: 8, scale: 2 }).default(
     '0',
   ),

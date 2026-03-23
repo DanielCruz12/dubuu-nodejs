@@ -2,12 +2,106 @@ import { db } from '../database/db'
 import { ProductAmenitiesProducts, TourDates, Tours } from '../database/schemas'
 import { saveTourWithTranslations } from '../services/tour-translations-service'
 import { getEnabledLocales } from '../services/translation-service'
+import { TourDateStatus } from '../constants/enums'
+import type { TourDateCreateInput } from '../types/tour'
+
+function parsePriceToDecimalString(value: number | string): string {
+  const n = typeof value === 'string' ? parseFloat(value) : value
+  if (isNaN(n) || n <= 0) {
+    throw new Error('Cada fecha debe tener un precio válido mayor que 0.')
+  }
+  return n.toFixed(2)
+}
+
+function normalizeTourDateRows(
+  parsedAvailableDates: TourDateCreateInput[],
+  defaultPrice: number | string | undefined,
+  defaultMaxPeople: number,
+): Array<{
+  date: Date
+  price: string
+  max_people: number
+  status: (typeof TourDateStatus)[keyof typeof TourDateStatus]
+}> {
+  if (!parsedAvailableDates.length) {
+    throw new Error('Debe haber al menos una fecha disponible.')
+  }
+
+  const first = parsedAvailableDates[0]
+  const isObjectRows =
+    typeof first === 'object' &&
+    first !== null &&
+    'date' in first &&
+    typeof (first as { date: unknown }).date === 'string'
+
+  if (isObjectRows) {
+    return parsedAvailableDates.map((row) => {
+      const r = row as {
+        date: string
+        price?: number | string
+        max_people?: number | string
+        status?: string
+      }
+      const parsed = new Date(r.date)
+      if (isNaN(parsed.getTime())) {
+        throw new Error(`La fecha '${r.date}' no es válida.`)
+      }
+      const rawPrice = r.price ?? defaultPrice
+      if (rawPrice === undefined) {
+        throw new Error(
+          'Cada fecha debe incluir precio o debes enviar un precio por defecto (price).',
+        )
+      }
+      const mp = Number(r.max_people ?? defaultMaxPeople)
+      if (isNaN(mp) || mp <= 0) {
+        throw new Error('max_people debe ser un número válido mayor que 0.')
+      }
+      const st = r.status ?? TourDateStatus.ACTIVE
+      if (
+        st !== TourDateStatus.ACTIVE &&
+        st !== TourDateStatus.CANCELLED &&
+        st !== TourDateStatus.COMPLETED
+      ) {
+        throw new Error(
+          `Estado de fecha inválido: ${st}. Usa active, cancelled o completed.`,
+        )
+      }
+      return {
+        date: parsed,
+        price: parsePriceToDecimalString(rawPrice),
+        max_people: mp,
+        status: st,
+      }
+    })
+  }
+
+  if (defaultPrice === undefined) {
+    throw new Error(
+      'Para fechas solo en texto (ISO), el campo price del tour es obligatorio.',
+    )
+  }
+  const priceStr = parsePriceToDecimalString(defaultPrice)
+
+  return (parsedAvailableDates as string[]).map((dateStr) => {
+    const parsed = new Date(dateStr)
+    if (isNaN(parsed.getTime())) {
+      throw new Error(`La fecha '${dateStr}' no es válida.`)
+    }
+    return {
+      date: parsed,
+      price: priceStr,
+      max_people: defaultMaxPeople,
+      status: TourDateStatus.ACTIVE,
+    }
+  })
+}
 
 export const createTourHandler = async (data: any, productId: string) => {
   const {
     departure_point,
     available_dates,
     max_people,
+    price,
     itinerary = [],
     highlight,
     expenses = [],
@@ -22,55 +116,48 @@ export const createTourHandler = async (data: any, productId: string) => {
   } = data
   const enabled = getEnabledLocales()
   const tourLocale =
-    requestedLocale?.trim()?.toLowerCase() && enabled.includes(requestedLocale.trim().toLowerCase())
+    requestedLocale?.trim()?.toLowerCase() &&
+    enabled.includes(requestedLocale.trim().toLowerCase())
       ? requestedLocale.trim().toLowerCase()
       : undefined
 
-  // ✅ Parsear campos que vienen como JSON strings
-  let parsedAvailableDates = available_dates
+  let parsedAvailableDates: TourDateCreateInput[] = available_dates
   let parsedItinerary = itinerary
   let parsedExpenses = expenses
   let parsedAmenities = amenities
   let parsedPackingList = packing_list
 
   try {
-    // Parsear available_dates si es string
     if (typeof available_dates === 'string') {
       parsedAvailableDates = JSON.parse(available_dates)
     }
 
-    // Parsear itinerary si es string
     if (typeof itinerary === 'string') {
       parsedItinerary = JSON.parse(itinerary)
     }
 
-    // Parsear packing_list si es string
     if (typeof packing_list === 'string') {
       parsedPackingList = JSON.parse(packing_list)
     } else {
       parsedPackingList = packing_list
     }
 
-    // Parsear expenses si es string
     if (typeof expenses === 'string') {
       parsedExpenses = JSON.parse(expenses)
     }
 
-    // Parsear amenities si es string
     if (typeof amenities === 'string') {
       parsedAmenities = JSON.parse(amenities)
     }
-  } catch (error) {
+  } catch {
     throw new Error('Error al parsear los datos JSON del tour.')
   }
 
-  // ✅ Convertir números
   const numericMaxPeople = Number(max_people)
   const numericDuration = Number(duration)
   const numericLat = Number(lat)
   const numericLong = Number(long)
 
-  // ✅ Validaciones
   if (
     !departure_point ||
     !parsedAvailableDates ||
@@ -87,14 +174,11 @@ export const createTourHandler = async (data: any, productId: string) => {
     throw new Error('Faltan campos obligatorios para el producto tipo Tour.')
   }
 
-  // ✅ Validar fechas
-  const parsedDates = parsedAvailableDates.map((date: string) => {
-    const parsed = new Date(date)
-    if (isNaN(parsed.getTime())) {
-      throw new Error(`La fecha '${date}' no es válida.`)
-    }
-    return parsed
-  })
+  const dateRows = normalizeTourDateRows(
+    parsedAvailableDates,
+    price,
+    numericMaxPeople,
+  )
 
   await db.insert(Tours).values({
     product_id: productId,
@@ -117,15 +201,16 @@ export const createTourHandler = async (data: any, productId: string) => {
     tourLocale,
   )
 
-  const tourDateRows = parsedDates.map((date) => ({
+  const tourDateRows = dateRows.map((row) => ({
     tour_id: productId,
-    date,
-    max_people: numericMaxPeople,
+    date: row.date,
+    max_people: row.max_people,
     people_booked: 0,
+    price: row.price,
+    status: row.status,
   }))
   await db.insert(TourDates).values(tourDateRows).execute()
 
-  // ✅ Insertar amenities relacionados (solo si hay amenities)
   if (Array.isArray(parsedAmenities) && parsedAmenities.length > 0) {
     const amenityRows = parsedAmenities.map((amenityId: string) => ({
       productId: productId,

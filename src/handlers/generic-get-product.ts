@@ -28,14 +28,12 @@ export const getBaseProductInfo = async (
       description: ProductTranslations.description,
       address: ProductTranslations.address,
       user_id: Products.user_id,
-      price: Products.price,
       country: Products.country,
       is_approved: Products.is_approved,
       images: Products.images,
       files: Products.files,
       videos: Products.videos,
       banner: Products.banner,
-      is_active: Products.is_active,
       average_rating: Products.average_rating,
       total_reviews: Products.total_reviews,
       created_at: Products.created_at,
@@ -98,7 +96,10 @@ export const getBaseProductInfo = async (
     .innerJoin(
       TargetProductAudienceTranslations,
       and(
-        eq(TargetProductAudiences.id, TargetProductAudienceTranslations.audience_id),
+        eq(
+          TargetProductAudiences.id,
+          TargetProductAudienceTranslations.audience_id,
+        ),
         eq(TargetProductAudienceTranslations.locale, lang),
       ),
     )

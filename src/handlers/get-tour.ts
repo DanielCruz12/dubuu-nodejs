@@ -5,7 +5,7 @@ import { getDefaultLocale } from '../services/translation-service'
 
 export const getTourById = async (
   productId: string,
-  baseProduct: { id: string; name: string },
+  baseProduct: Record<string, unknown>,
   locale?: string,
 ) => {
   const lang = locale ?? getDefaultLocale()
@@ -19,7 +19,9 @@ export const getTourById = async (
                 'id', ${TourDates.id},
                 'date', ${TourDates.date},
                 'max_people', ${TourDates.max_people},
-                'people_booked', ${TourDates.people_booked}
+                'people_booked', ${TourDates.people_booked},
+                'price', ${TourDates.price},
+                'status', ${TourDates.status}
               )
             ) FILTER (WHERE ${TourDates.id} IS NOT NULL),
             '[]'

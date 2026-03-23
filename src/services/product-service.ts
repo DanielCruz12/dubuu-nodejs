@@ -17,11 +17,9 @@ import {
   ProductTypeTranslations,
   TargetProductAudienceTranslations,
 } from '../database/schemas'
-import { eq, and, ilike, gte, lte, desc, or, lt } from 'drizzle-orm'
-import {
-  getDefaultLocale,
-  getEnabledLocales,
-} from './translation-service'
+import { eq, and, ilike, gte, lte, desc, or, lt, sql } from 'drizzle-orm'
+import { TourDateStatus, type TourDateStatusType } from '../constants/enums'
+import { getDefaultLocale, getEnabledLocales } from './translation-service'
 import { getProductTypeByIdService } from './product-type-service'
 import { createTourHandler } from '../handlers/create-tour'
 import {
@@ -53,10 +51,7 @@ const PRODUCT_TYPE_NAME_ALIASES: Record<string, string[]> = {
   rental: ['rental', 'rentals', 'alquiler', 'alquileres'],
 }
 
-export const getProductsService = async (
-  req: Request,
-  locale?: string,
-) => {
+export const getProductsService = async (req: Request, locale?: string) => {
   const limit = parseInt(req.query.limit as string) || 10
   const cursor = req.query.cursor as string | undefined
   const defaultLocale = getDefaultLocale()
@@ -65,8 +60,9 @@ export const getProductsService = async (
   const productTypeParam =
     req.query.product_type?.toString().toLowerCase() || 'tours'
   const productTypeKey = normalizeProductTypeName(productTypeParam)
-  const typeNameAliases =
-    PRODUCT_TYPE_NAME_ALIASES[productTypeKey] ?? [productTypeParam]
+  const typeNameAliases = PRODUCT_TYPE_NAME_ALIASES[productTypeKey] ?? [
+    productTypeParam,
+  ]
   const search = req.query.search?.toString()
   const country = req.query.country?.toString()
   const minPrice = req.query.min_price
@@ -100,9 +96,42 @@ export const getProductsService = async (
     ...(req.query.is_approved
       ? [eq(Products.is_approved, req.query.is_approved === 'true')]
       : []),
-    ...(minPrice !== undefined ? [gte(Products.price, String(minPrice))] : []),
-    ...(maxPrice !== undefined ? [lte(Products.price, String(maxPrice))] : []),
-    ...(is_active !== undefined ? [eq(Products.is_active, is_active)] : []),
+    ...(minPrice !== undefined
+      ? [
+          sql`COALESCE(
+            (SELECT MIN(td.price::numeric) FROM tour_dates td WHERE td.tour_id = ${Products.id}),
+            (SELECT r.price_per_day::numeric FROM rentals r WHERE r.product_id = ${Products.id} LIMIT 1),
+            0
+          ) >= ${String(minPrice)}`,
+        ]
+      : []),
+    ...(maxPrice !== undefined
+      ? [
+          sql`COALESCE(
+            (SELECT MIN(td.price::numeric) FROM tour_dates td WHERE td.tour_id = ${Products.id}),
+            (SELECT r.price_per_day::numeric FROM rentals r WHERE r.product_id = ${Products.id} LIMIT 1),
+            0
+          ) <= ${String(maxPrice)}`,
+        ]
+      : []),
+    ...(is_active === true
+      ? [
+          sql`(
+            EXISTS (SELECT 1 FROM tour_dates td WHERE td.tour_id = ${Products.id} AND td.status = ${TourDateStatus.ACTIVE})
+            OR EXISTS (SELECT 1 FROM rentals r WHERE r.product_id = ${Products.id} AND coalesce(r.is_available, false) = true)
+          )`,
+        ]
+      : []),
+    ...(is_active === false
+      ? [
+          sql`(
+            (EXISTS (SELECT 1 FROM tours t WHERE t.product_id = ${Products.id}) AND NOT EXISTS (SELECT 1 FROM tour_dates td WHERE td.tour_id = ${Products.id} AND td.status = ${TourDateStatus.ACTIVE}))
+            OR
+            (EXISTS (SELECT 1 FROM rentals r WHERE r.product_id = ${Products.id} AND coalesce(r.is_available, false) = false)
+              AND NOT EXISTS (SELECT 1 FROM tours t2 WHERE t2.product_id = ${Products.id}))
+          )`,
+        ]
+      : []),
     ...(minRating !== undefined
       ? [gte(Products.average_rating, String(minRating))]
       : []),
@@ -116,14 +145,20 @@ export const getProductsService = async (
       description: ProductTranslations.description,
       address: ProductTranslations.address,
       user_id: Products.user_id,
-      price: Products.price,
+      price: sql`COALESCE(
+        (SELECT MIN(td.price::text) FROM tour_dates td WHERE td.tour_id = ${Products.id}),
+        (SELECT r.price_per_day::text FROM rentals r WHERE r.product_id = ${Products.id} LIMIT 1)
+      )`.as('price'),
       country: Products.country,
       is_approved: Products.is_approved,
       images: Products.images,
       files: Products.files,
       videos: Products.videos,
       banner: Products.banner,
-      is_active: Products.is_active,
+      is_active: sql`(
+        EXISTS (SELECT 1 FROM tour_dates td WHERE td.tour_id = ${Products.id} AND td.status = ${TourDateStatus.ACTIVE})
+        OR EXISTS (SELECT 1 FROM rentals r WHERE r.product_id = ${Products.id} AND coalesce(r.is_available, false) = true)
+      )`.as('is_active'),
       average_rating: Products.average_rating,
       total_reviews: Products.total_reviews,
       created_at: Products.created_at,
@@ -171,7 +206,10 @@ export const getProductsService = async (
     .innerJoin(
       TargetProductAudienceTranslations,
       and(
-        eq(TargetProductAudiences.id, TargetProductAudienceTranslations.audience_id),
+        eq(
+          TargetProductAudiences.id,
+          TargetProductAudienceTranslations.audience_id,
+        ),
         eq(TargetProductAudienceTranslations.locale, lang),
       ),
     )
@@ -190,7 +228,9 @@ export const getProductsService = async (
   const hasMore = products.length > limit
   const results = hasMore ? products.slice(0, limit) : products
   const nextCursor =
-    results.length > 0 ? results[results.length - 1].created_at.toISOString() : null
+    results.length > 0
+      ? results[results.length - 1].created_at.toISOString()
+      : null
 
   return {
     data: results,
@@ -280,7 +320,6 @@ export const createProductService = async (productData: any) => {
   const {
     name,
     description,
-    price,
     user_id,
     address,
     country,
@@ -292,12 +331,12 @@ export const createProductService = async (productData: any) => {
     videos = [],
     banner = '',
     is_approved = false,
-    is_active = true,
     locale: requestedLocale,
   } = productData
   const enabled = getEnabledLocales()
   const productLocale =
-    requestedLocale?.trim()?.toLowerCase() && enabled.includes(requestedLocale.trim().toLowerCase())
+    requestedLocale?.trim()?.toLowerCase() &&
+    enabled.includes(requestedLocale.trim().toLowerCase())
       ? requestedLocale.trim().toLowerCase()
       : undefined
 
@@ -305,7 +344,6 @@ export const createProductService = async (productData: any) => {
   if (
     !name ||
     !description ||
-    !price ||
     !user_id ||
     !product_category_id ||
     !target_product_audience_id ||
@@ -324,7 +362,6 @@ export const createProductService = async (productData: any) => {
     const [newProduct] = await db
       .insert(Products)
       .values({
-        price,
         user_id,
         country,
         product_category_id,
@@ -335,7 +372,6 @@ export const createProductService = async (productData: any) => {
         videos,
         banner,
         is_approved,
-        is_active,
       })
       .returning()
 
@@ -373,80 +409,139 @@ export const createProductService = async (productData: any) => {
   }
 }
 
+function parseTourDateStatusInput(value: unknown): TourDateStatusType {
+  if (value === undefined || value === null) {
+    throw new Error('status es obligatorio cuando se envía.')
+  }
+  if (typeof value !== 'string') {
+    throw new Error('status debe ser una cadena (active, cancelled, completed).')
+  }
+  const v = value.trim().toLowerCase()
+  if (
+    v !== TourDateStatus.ACTIVE &&
+    v !== TourDateStatus.CANCELLED &&
+    v !== TourDateStatus.COMPLETED
+  ) {
+    throw new Error('status debe ser active, cancelled o completed.')
+  }
+  return v as TourDateStatusType
+}
+
 export const updateProductService = async (
   productId: string,
-  productData: any,
+  productData: Record<string, unknown>,
 ) => {
   try {
     const {
       name,
       description,
-      price,
       address,
       country,
-      is_active,
       selectedDateId,
+      update_all_tour_dates,
+      price,
       max_people,
+      status,
       locale: requestedLocale,
     } = productData
     const enabled = getEnabledLocales()
+    const localeStr =
+      typeof requestedLocale === 'string' ? requestedLocale.trim().toLowerCase() : ''
     const productLocale =
-      requestedLocale?.trim()?.toLowerCase() && enabled.includes(requestedLocale.trim().toLowerCase())
-        ? requestedLocale.trim().toLowerCase()
-        : undefined
+      localeStr && enabled.includes(localeStr) ? localeStr : undefined
 
-    // Preparar objeto de actualización para el producto base
-    const productUpdateData: any = {
-      updated_at: new Date(),
-    }
-
-    // Validar campos traducibles (se persisten en product_translations, no en products)
-    if (name !== undefined && (!name || name.trim() === '')) {
+    if (name !== undefined && (!name || String(name).trim() === '')) {
       throw new Error('El nombre del producto no puede estar vacío.')
     }
-    if (description !== undefined && (!description || description.trim() === '')) {
+    if (
+      description !== undefined &&
+      (!description || String(description).trim() === '')
+    ) {
       throw new Error('La descripción del producto no puede estar vacía.')
     }
 
-    if (price !== undefined) {
-      if (!price || isNaN(parseFloat(price)) || parseFloat(price) <= 0) {
-        throw new Error('El precio debe ser un número válido mayor que 0.')
-      }
-      productUpdateData.price = parseFloat(price).toFixed(2)
-    }
-
-    if (address !== undefined && (!address || address.trim() === '')) {
+    if (address !== undefined && (!address || String(address).trim() === '')) {
       throw new Error('La dirección no puede estar vacía.')
     }
 
     if (country !== undefined) {
-      if (!country || country.trim() === '') {
+      if (!country || String(country).trim() === '') {
         throw new Error('El país no puede estar vacío.')
       }
-      productUpdateData.country = country.trim()
     }
 
-    if (is_active !== undefined) {
-      if (typeof is_active !== 'boolean') {
-        throw new Error('El estado activo debe ser verdadero o falso.')
+    const hasTranslationUpdates =
+      name !== undefined ||
+      description !== undefined ||
+      address !== undefined
+
+    const wantsTourDatePatch =
+      price !== undefined ||
+      max_people !== undefined ||
+      status !== undefined
+
+    const updateAll = update_all_tour_dates === true
+    const hasTourDateUpdates =
+      wantsTourDatePatch && (updateAll || typeof selectedDateId === 'string')
+
+    if (wantsTourDatePatch && !hasTourDateUpdates) {
+      throw new Error(
+        'Para actualizar precio, cupos o estado de fechas, envía selectedDateId o update_all_tour_dates: true.',
+      )
+    }
+
+    if (updateAll && selectedDateId) {
+      throw new Error(
+        'No uses selectedDateId junto con update_all_tour_dates; elige uno.',
+      )
+    }
+
+    const tourDatePatch: {
+      price?: string
+      max_people?: number
+      status?: TourDateStatusType
+    } = {}
+
+    if (price !== undefined) {
+      const p =
+        typeof price === 'number' ? price : parseFloat(String(price))
+      if (isNaN(p) || p <= 0) {
+        throw new Error('El precio debe ser un número válido mayor que 0.')
       }
-      productUpdateData.is_active = is_active
+      tourDatePatch.price = p.toFixed(2)
     }
 
-    // Verificar que hay al menos un campo para actualizar
-    const hasProductUpdates = Object.keys(productUpdateData).length > 1
-    const hasTourDateUpdates = selectedDateId && max_people !== undefined
+    if (max_people !== undefined) {
+      const mp = parseInt(String(max_people), 10)
+      if (isNaN(mp) || mp <= 0) {
+        throw new Error(
+          'El máximo de personas debe ser un número válido mayor que 0.',
+        )
+      }
+      tourDatePatch.max_people = mp
+    }
+
+    if (status !== undefined) {
+      tourDatePatch.status = parseTourDateStatusInput(status)
+    }
+
+    const hasProductUpdates =
+      country !== undefined || hasTranslationUpdates
 
     if (!hasProductUpdates && !hasTourDateUpdates) {
       throw new Error('No se proporcionaron campos para actualizar.')
     }
 
-    // Actualizar producto base si hay cambios
     let updatedProduct = null
     if (hasProductUpdates) {
       const [product] = await db
         .update(Products)
-        .set(productUpdateData)
+        .set({
+          ...(country !== undefined
+            ? { country: String(country).trim() }
+            : {}),
+          updated_at: new Date(),
+        })
         .where(eq(Products.id, productId))
         .returning()
 
@@ -456,29 +551,40 @@ export const updateProductService = async (
       updatedProduct = product
     }
 
-    // Actualizar fecha específica del tour si se proporciona
-    if (hasTourDateUpdates) {
-      // Validar max_people
-      if (isNaN(parseInt(max_people)) || parseInt(max_people) <= 0) {
-        throw new Error(
-          'El máximo de personas debe ser un número válido mayor que 0.',
-        )
+    if (hasTourDateUpdates && Object.keys(tourDatePatch).length > 0) {
+      const [sample] = await db
+        .select({ id: TourDates.id })
+        .from(TourDates)
+        .where(eq(TourDates.tour_id, productId))
+        .limit(1)
+
+      if (!sample) {
+        throw new Error('Este producto no tiene fechas de tour para actualizar.')
       }
 
-      const [updatedTourDate] = await db
-        .update(TourDates)
-        .set({
-          max_people: parseInt(max_people),
-        })
-        .where(eq(TourDates.id, selectedDateId))
-        .returning()
+      if (updateAll) {
+        await db
+          .update(TourDates)
+          .set(tourDatePatch)
+          .where(eq(TourDates.tour_id, productId))
+      } else {
+        const [updatedTourDate] = await db
+          .update(TourDates)
+          .set(tourDatePatch)
+          .where(
+            and(
+              eq(TourDates.id, selectedDateId as string),
+              eq(TourDates.tour_id, productId),
+            ),
+          )
+          .returning()
 
-      if (!updatedTourDate) {
-        throw new Error('Fecha del tour no encontrada o no se pudo actualizar.')
+        if (!updatedTourDate) {
+          throw new Error('Fecha del tour no encontrada o no pertenece al producto.')
+        }
       }
     }
 
-    // Si no se actualizó el producto, obtenerlo para retornarlo
     if (!updatedProduct) {
       const [product] = await db
         .select()
@@ -491,7 +597,11 @@ export const updateProductService = async (
       updatedProduct = product
     }
 
-    if (name !== undefined || description !== undefined || address !== undefined) {
+    if (
+      name !== undefined ||
+      description !== undefined ||
+      address !== undefined
+    ) {
       const defaultLocale = getDefaultLocale()
       const needFallback =
         name === undefined || description === undefined || address === undefined
