@@ -5,7 +5,7 @@ import { getEnabledLocales } from '../services/translation-service'
 import { TourDateStatus } from '../constants/enums'
 import type { TourDateCreateInput } from '../types/tour'
 
-function parsePriceToDecimalString(value: number | string): string {
+export function parsePriceToDecimalString(value: number | string): string {
   const n = typeof value === 'string' ? parseFloat(value) : value
   if (isNaN(n) || n <= 0) {
     throw new Error('Cada fecha debe tener un precio válido mayor que 0.')

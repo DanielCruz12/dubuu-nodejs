@@ -4,6 +4,7 @@ import type { TourDateStatusType } from '../constants'
 export type TourDateCreateInput =
   | string
   | {
+      id?: string
       date: string
       price?: number | string
       max_people?: number | string

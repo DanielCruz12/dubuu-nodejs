@@ -29,6 +29,10 @@ import {
 import { getTourById } from '../handlers/get-tour'
 import { getRentalById } from '../handlers/get-rental'
 import { createRentalHandler } from '../handlers/create-rental'
+import {
+  hasTourPayloadFields,
+  updateTourHandler,
+} from '../handlers/update-tour'
 import { saveProductWithTranslations } from './product-translations-service'
 
 const normalizeProductTypeName = (name: string) => {
@@ -427,6 +431,26 @@ function parseTourDateStatusInput(value: unknown): TourDateStatusType {
   return v as TourDateStatusType
 }
 
+async function getProductTypeKeyForProduct(productId: string): Promise<string> {
+  const [row] = await db
+    .select({ name: ProductTypeTranslations.name })
+    .from(Products)
+    .innerJoin(ProductTypes, eq(Products.product_type_id, ProductTypes.id))
+    .innerJoin(
+      ProductTypeTranslations,
+      and(
+        eq(ProductTypes.id, ProductTypeTranslations.product_type_id),
+        eq(ProductTypeTranslations.locale, getDefaultLocale()),
+      ),
+    )
+    .where(eq(Products.id, productId))
+    .limit(1)
+  if (!row) {
+    throw new Error('Producto no encontrado.')
+  }
+  return normalizeProductTypeName(row.name)
+}
+
 export const updateProductService = async (
   productId: string,
   productData: Record<string, unknown>,
@@ -443,6 +467,13 @@ export const updateProductService = async (
       max_people,
       status,
       locale: requestedLocale,
+      product_type_id,
+      product_category_id,
+      target_product_audience_id,
+      images,
+      files,
+      videos,
+      banner,
     } = productData
     const enabled = getEnabledLocales()
     const localeStr =
@@ -475,16 +506,26 @@ export const updateProductService = async (
       description !== undefined ||
       address !== undefined
 
-    const wantsTourDatePatch =
-      price !== undefined ||
-      max_people !== undefined ||
-      status !== undefined
+    const availableDatesProvided =
+      Array.isArray(productData.available_dates) ||
+      typeof productData.available_dates === 'string'
+
+    const wantsTourDatePatchLegacy =
+      !availableDatesProvided &&
+      (price !== undefined ||
+        max_people !== undefined ||
+        status !== undefined)
+
+    const productTypeKey = await getProductTypeKeyForProduct(productId)
+    const shouldRunTourHandler =
+      productTypeKey === 'tour' && hasTourPayloadFields(productData)
 
     const updateAll = update_all_tour_dates === true
     const hasTourDateUpdates =
-      wantsTourDatePatch && (updateAll || typeof selectedDateId === 'string')
+      wantsTourDatePatchLegacy &&
+      (updateAll || typeof selectedDateId === 'string')
 
-    if (wantsTourDatePatch && !hasTourDateUpdates) {
+    if (wantsTourDatePatchLegacy && !hasTourDateUpdates) {
       throw new Error(
         'Para actualizar precio, cupos o estado de fechas, envía selectedDateId o update_all_tour_dates: true.',
       )
@@ -526,10 +567,26 @@ export const updateProductService = async (
     }
 
     const hasProductUpdates =
-      country !== undefined || hasTranslationUpdates
+      country !== undefined ||
+      hasTranslationUpdates ||
+      product_type_id !== undefined ||
+      product_category_id !== undefined ||
+      target_product_audience_id !== undefined ||
+      images !== undefined ||
+      files !== undefined ||
+      videos !== undefined ||
+      banner !== undefined
 
-    if (!hasProductUpdates && !hasTourDateUpdates) {
+    if (
+      !hasProductUpdates &&
+      !hasTourDateUpdates &&
+      !shouldRunTourHandler
+    ) {
       throw new Error('No se proporcionaron campos para actualizar.')
+    }
+
+    if (shouldRunTourHandler) {
+      await updateTourHandler(productId, productData)
     }
 
     let updatedProduct = null
@@ -540,6 +597,22 @@ export const updateProductService = async (
           ...(country !== undefined
             ? { country: String(country).trim() }
             : {}),
+          ...(product_type_id !== undefined
+            ? { product_type_id: product_type_id as string }
+            : {}),
+          ...(product_category_id !== undefined
+            ? { product_category_id: product_category_id as string }
+            : {}),
+          ...(target_product_audience_id !== undefined
+            ? {
+                target_product_audience_id:
+                  target_product_audience_id as string,
+              }
+            : {}),
+          ...(images !== undefined ? { images: images as string[] } : {}),
+          ...(files !== undefined ? { files: files as string[] } : {}),
+          ...(videos !== undefined ? { videos: videos as string[] } : {}),
+          ...(banner !== undefined ? { banner: banner as string | null } : {}),
           updated_at: new Date(),
         })
         .where(eq(Products.id, productId))

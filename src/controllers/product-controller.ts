@@ -226,11 +226,20 @@ export const updateProduct = async (req: Request, res: Response) => {
     const productId = req.params.id
     const rawUserId = req.body?.user_id ?? req.body?.userId
     const userId = typeof rawUserId === 'string' ? rawUserId.trim() : ''
+    const queryLocale =
+      typeof req.query.locale === 'string' && req.query.locale.trim()
+        ? req.query.locale.trim()
+        : undefined
     const updateData = {
       ...req.body,
       ...(userId ? { user_id: userId } : {}),
+      ...(queryLocale ? { locale: queryLocale } : {}),
     } as Record<string, unknown>
     const { selectedDateId, update_all_tour_dates } = updateData
+
+    const availableDatesInBody =
+      Array.isArray(updateData.available_dates) ||
+      typeof updateData.available_dates === 'string'
 
     // Verificar que el producto existe
     const existingProduct = await getProductByIdService(productId)
@@ -253,9 +262,10 @@ export const updateProduct = async (req: Request, res: Response) => {
     }
 
     const wantsDateFields =
-      updateData.price !== undefined ||
-      updateData.max_people !== undefined ||
-      updateData.status !== undefined
+      !availableDatesInBody &&
+      (updateData.price !== undefined ||
+        updateData.max_people !== undefined ||
+        updateData.status !== undefined)
 
     if (wantsDateFields && update_all_tour_dates && selectedDateId) {
       return res.status(400).json({
@@ -271,7 +281,7 @@ export const updateProduct = async (req: Request, res: Response) => {
       })
     }
 
-    if (selectedDateId) {
+    if (wantsDateFields && selectedDateId) {
       const [tourDate] = await db
         .select()
         .from(TourDates)
@@ -299,7 +309,7 @@ export const updateProduct = async (req: Request, res: Response) => {
       }
     }
 
-    if (update_all_tour_dates && updateData.max_people !== undefined) {
+    if (wantsDateFields && update_all_tour_dates && updateData.max_people !== undefined) {
       const allDates = await db
         .select()
         .from(TourDates)
