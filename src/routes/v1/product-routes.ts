@@ -32,7 +32,19 @@ router.post(
   createProduct,
 )
 
-router.patch('/:id', requireAuth(), requireRole(['host']), updateProduct)
+// Mismo parser que POST: el front envía FormData (multipart), no JSON
+router.patch(
+  '/:id',
+  requireAuth(),
+  requireRole(['host']),
+  upload.fields([
+    { name: 'images', maxCount: 10 },
+    { name: 'banner', maxCount: 1 },
+    { name: 'files', maxCount: 5 },
+    { name: 'videos', maxCount: 3 },
+  ]),
+  updateProduct,
+)
 
 // Eliminar producto (siempre con archivos)
 router.delete(
