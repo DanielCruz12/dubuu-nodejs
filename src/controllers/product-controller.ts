@@ -224,7 +224,12 @@ export const createProduct = async (req: Request, res: Response) => {
 export const updateProduct = async (req: Request, res: Response) => {
   try {
     const productId = req.params.id
-    const updateData = { ...req.body } as Record<string, unknown>
+    const rawUserId = req.body?.user_id ?? req.body?.userId
+    const userId = typeof rawUserId === 'string' ? rawUserId.trim() : ''
+    const updateData = {
+      ...req.body,
+      ...(userId ? { user_id: userId } : {}),
+    } as Record<string, unknown>
     const { selectedDateId, update_all_tour_dates } = updateData
 
     // Verificar que el producto existe
@@ -233,8 +238,7 @@ export const updateProduct = async (req: Request, res: Response) => {
       return res.status(404).json({ message: 'Producto no encontrado.' })
     }
 
-    // Verificar que el usuario está en el body
-    const userId = req.body.user_id
+    // Mismo id en body: `user_id` (API) o `userId` (camelCase típico del front)
     if (!userId) {
       return res
         .status(400)
