@@ -17,6 +17,7 @@ import { favoritesRoutes } from './favorite-routes'
 import { contactRoutes } from './contact-routes'
 import blogRoutes from './blog-routes'
 import { panelRoutes } from './panel-routes'
+import { hostProfileRoutes } from './host-profile-routes'
 
 const router = express.Router()
 
@@ -31,6 +32,7 @@ router.use(
 )
 router.use('/bookings', requireAuth(), bookingsRoutes)
 router.use('/contact', requireAuth(), contactRoutes)
+router.use('/hosts', hostProfileRoutes)
 router.use('/products', productRoutes)
 router.use('/favorite', requireAuth(), favoritesRoutes)
 router.use('/product-amenities', productAmenitiesRoutes)

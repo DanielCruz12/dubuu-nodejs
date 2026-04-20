@@ -15,6 +15,13 @@
       "when": 1774237531398,
       "tag": "0001_striped_maelstrom",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1776575749290,
+      "tag": "0002_fluffy_rockslide",
+      "breakpoints": true
     }
   ]
 }
