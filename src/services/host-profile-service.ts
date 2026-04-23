@@ -12,14 +12,15 @@ const MAX_TEXT = 8000
 const MAX_ARRAY_ITEMS = 40
 
 export type HostProfileUpdateInput = {
+  image_url?: string
   intro?: string
-  descripcion?: string
-  anosExperiencia?: number
-  especialidad?: string
-  tipoExperiencias?: string
-  estilo?: string
-  tiposExperiencia?: string[]
-  idiomas?: string[]
+  description?: string
+  years_experience?: number
+  specialty?: string
+  experience_summary?: string
+  hosting_style?: string
+  experience_tags?: string[]
+  languages?: string[]
 }
 
 function clampText(value: unknown, max = MAX_TEXT): string {
@@ -61,60 +62,17 @@ export async function isUserHost(userId: string): Promise<boolean> {
   return name === 'host'
 }
 
-async function getHostProductStats(userId: string): Promise<{
-  totalTours: number
-  totalEvaluaciones: number
-  calificacion: string | null
-}> {
+async function getHostTotalTours(userId: string): Promise<number> {
   const [row] = await db
-    .select({
-      totalTours: sql<number>`count(*)::int`,
-      totalEvaluaciones: sql<number>`coalesce(sum(${Products.total_reviews}), 0)::int`,
-      calificacion: sql<string | null>`
-        case when coalesce(sum(${Products.total_reviews}), 0) > 0
-        then trim(to_char(
-          sum(${Products.average_rating}::numeric * ${Products.total_reviews})
-            / nullif(sum(${Products.total_reviews}), 0),
-          'FM999999990.00'
-        ))
-        else null end
-      `,
-    })
+    .select({ total_tours: sql<number>`count(*)::int` })
     .from(Products)
     .where(eq(Products.user_id, userId))
 
-  return {
-    totalTours: row?.totalTours ?? 0,
-    totalEvaluaciones: row?.totalEvaluaciones ?? 0,
-    calificacion: row?.calificacion ?? null,
-  }
-}
-
-function buildDetalles(profile: {
-  specialty: string
-  experience_summary: string
-  hosting_style: string
-}) {
-  return [
-    {
-      key: 'specialty' as const,
-      label: 'Especialidad:',
-      value: profile.specialty,
-    },
-    {
-      key: 'experience_types' as const,
-      label: 'Tipo de experiencias:',
-      value: profile.experience_summary,
-    },
-    {
-      key: 'style' as const,
-      label: 'Estilo:',
-      value: profile.hosting_style,
-    },
-  ]
+  return row?.total_tours ?? 0
 }
 
 const emptyProfileRow = () => ({
+  image_url: '',
   intro: '',
   description: '',
   years_experience: 0,
@@ -162,6 +120,7 @@ export async function getPublicHostProfileByUserId(userId: string) {
 
   const profile = profileRow
     ? {
+        image_url: profileRow.image_url ?? '',
         intro: profileRow.intro,
         description: profileRow.description,
         years_experience: profileRow.years_experience,
@@ -173,23 +132,23 @@ export async function getPublicHostProfileByUserId(userId: string) {
       }
     : emptyProfileRow()
 
-  const stats = await getHostProductStats(userId)
+  const total_tours = await getHostTotalTours(userId)
 
   return {
-    userId: user.id,
+    user_id: user.id,
     username: user.username,
-    firstName: user.first_name,
-    lastName: user.last_name,
-    imageUrl: user.image_url ?? '',
-    calificacion: stats.calificacion,
-    totalEvaluaciones: stats.totalEvaluaciones,
-    totalTours: stats.totalTours,
-    anosExperiencia: profile.years_experience,
+    first_name: user.first_name,
+    last_name: user.last_name,
+    image_url: profile.image_url || user.image_url || '',
+    total_tours,
+    years_experience: profile.years_experience,
     intro: profile.intro,
-    descripcion: profile.description,
-    detalles: buildDetalles(profile),
-    tiposExperiencia: profile.experience_tags,
-    idiomas: profile.languages,
+    description: profile.description,
+    specialty: profile.specialty,
+    experience_summary: profile.experience_summary,
+    hosting_style: profile.hosting_style,
+    experience_tags: profile.experience_tags,
+    languages: profile.languages,
   }
 }
 
@@ -216,6 +175,7 @@ export async function upsertHostProfileForUser(
 
   const base = existing
     ? {
+        image_url: existing.image_url ?? '',
         intro: existing.intro,
         description: existing.description,
         years_experience: existing.years_experience,
@@ -228,33 +188,39 @@ export async function upsertHostProfileForUser(
     : emptyProfileRow()
 
   const merged = {
+    image_url:
+      input.image_url !== undefined
+        ? clampText(input.image_url, 2048)
+        : base.image_url,
     intro:
       input.intro !== undefined ? clampText(input.intro) : base.intro,
     description:
-      input.descripcion !== undefined
-        ? clampText(input.descripcion)
+      input.description !== undefined
+        ? clampText(input.description)
         : base.description,
     years_experience:
-      input.anosExperiencia !== undefined
-        ? clampInt(input.anosExperiencia, 0, 80)
+      input.years_experience !== undefined
+        ? clampInt(input.years_experience, 0, 80)
         : base.years_experience,
     specialty:
-      input.especialidad !== undefined
-        ? clampText(input.especialidad)
+      input.specialty !== undefined
+        ? clampText(input.specialty)
         : base.specialty,
     experience_summary:
-      input.tipoExperiencias !== undefined
-        ? clampText(input.tipoExperiencias)
+      input.experience_summary !== undefined
+        ? clampText(input.experience_summary)
         : base.experience_summary,
     hosting_style:
-      input.estilo !== undefined ? clampText(input.estilo) : base.hosting_style,
+      input.hosting_style !== undefined
+        ? clampText(input.hosting_style)
+        : base.hosting_style,
     experience_tags:
-      input.tiposExperiencia !== undefined
-        ? sanitizeStringArray(input.tiposExperiencia)
+      input.experience_tags !== undefined
+        ? sanitizeStringArray(input.experience_tags)
         : base.experience_tags,
     languages:
-      input.idiomas !== undefined
-        ? sanitizeStringArray(input.idiomas)
+      input.languages !== undefined
+        ? sanitizeStringArray(input.languages)
         : base.languages,
   }
 

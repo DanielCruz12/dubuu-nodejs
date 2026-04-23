@@ -7,14 +7,12 @@ export const HostProfiles = pgTable('host_profiles', {
     .references(() => Users.id, { onDelete: 'cascade' })
     .notNull()
     .unique(),
+  image_url: text().default('').notNull(),
   intro: text().default('').notNull(),
   description: text().default('').notNull(),
   years_experience: integer().default(0).notNull(),
-  /** Card line: specialty */
   specialty: text().default('').notNull(),
-  /** Card line: experience types (free text) */
   experience_summary: text().default('').notNull(),
-  /** Card line: hosting / service style */
   hosting_style: text().default('').notNull(),
   experience_tags: text().array().notNull().default([]),
   languages: text().array().notNull().default([]),

@@ -1,0 +1,1 @@
+ALTER TABLE "host_profiles" ADD COLUMN "image_url" text DEFAULT '' NOT NULL;
