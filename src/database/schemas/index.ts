@@ -31,4 +31,5 @@ export {
   ProductCategoryTranslations,
   TargetProductAudienceTranslations,
   ProductAmenityTranslations,
+  HostProfileTranslations,
 } from './translations'

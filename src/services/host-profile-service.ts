@@ -1,17 +1,23 @@
-import { eq, sql } from 'drizzle-orm'
+import { and, eq, sql } from 'drizzle-orm'
 import { db } from '../database/db'
 import {
   HostProfiles,
+  HostProfileTranslations,
   Products,
   Roles,
   Users,
 } from '../database/schemas'
+import { getDefaultLocale } from './translation-service'
+import {
+  saveHostProfileWithTranslations,
+} from './host-profile-translations-service'
 import { statusCodes } from '../utils'
 
 const MAX_TEXT = 8000
 const MAX_ARRAY_ITEMS = 40
 
 export type HostProfileUpdateInput = {
+  locale?: string
   image_url?: string
   intro?: string
   description?: string
@@ -83,12 +89,17 @@ const emptyProfileRow = () => ({
   languages: [] as string[],
 })
 
-export async function getPublicHostProfileByUserId(userId: string) {
+export async function getPublicHostProfileByUserId(
+  userId: string,
+  locale?: string,
+) {
   if (!userId) {
     console.error('400:', statusCodes[400])
     throw new Error('El ID del usuario es obligatorio.')
   }
 
+  const lang = locale ?? getDefaultLocale()
+  const defaultLocale = getDefaultLocale()
   const host = await isUserHost(userId)
   if (!host) {
     console.error('404:', statusCodes[404])
@@ -113,7 +124,43 @@ export async function getPublicHostProfileByUserId(userId: string) {
   }
 
   const [profileRow] = await db
-    .select()
+    .select({
+      image_url: HostProfiles.image_url,
+      years_experience: HostProfiles.years_experience,
+      languages: HostProfiles.languages,
+
+      // Fallback: si no hay traducción en `lang`, usa `defaultLocale`.
+      intro: sql<string>`COALESCE(
+        (SELECT t.intro FROM host_profile_translations t WHERE t.host_profile_id = ${HostProfiles.id} AND t.locale = ${lang} LIMIT 1),
+        (SELECT t.intro FROM host_profile_translations t WHERE t.host_profile_id = ${HostProfiles.id} AND t.locale = ${defaultLocale} LIMIT 1),
+        ''
+      )`.as('intro'),
+      description: sql<string>`COALESCE(
+        (SELECT t.description FROM host_profile_translations t WHERE t.host_profile_id = ${HostProfiles.id} AND t.locale = ${lang} LIMIT 1),
+        (SELECT t.description FROM host_profile_translations t WHERE t.host_profile_id = ${HostProfiles.id} AND t.locale = ${defaultLocale} LIMIT 1),
+        ''
+      )`.as('description'),
+      specialty: sql<string>`COALESCE(
+        (SELECT t.specialty FROM host_profile_translations t WHERE t.host_profile_id = ${HostProfiles.id} AND t.locale = ${lang} LIMIT 1),
+        (SELECT t.specialty FROM host_profile_translations t WHERE t.host_profile_id = ${HostProfiles.id} AND t.locale = ${defaultLocale} LIMIT 1),
+        ''
+      )`.as('specialty'),
+      experience_summary: sql<string>`COALESCE(
+        (SELECT t.experience_summary FROM host_profile_translations t WHERE t.host_profile_id = ${HostProfiles.id} AND t.locale = ${lang} LIMIT 1),
+        (SELECT t.experience_summary FROM host_profile_translations t WHERE t.host_profile_id = ${HostProfiles.id} AND t.locale = ${defaultLocale} LIMIT 1),
+        ''
+      )`.as('experience_summary'),
+      hosting_style: sql<string>`COALESCE(
+        (SELECT t.hosting_style FROM host_profile_translations t WHERE t.host_profile_id = ${HostProfiles.id} AND t.locale = ${lang} LIMIT 1),
+        (SELECT t.hosting_style FROM host_profile_translations t WHERE t.host_profile_id = ${HostProfiles.id} AND t.locale = ${defaultLocale} LIMIT 1),
+        ''
+      )`.as('hosting_style'),
+      experience_tags: sql<string[]>`COALESCE(
+        (SELECT t.experience_tags FROM host_profile_translations t WHERE t.host_profile_id = ${HostProfiles.id} AND t.locale = ${lang} LIMIT 1),
+        (SELECT t.experience_tags FROM host_profile_translations t WHERE t.host_profile_id = ${HostProfiles.id} AND t.locale = ${defaultLocale} LIMIT 1),
+        '{}'::text[]
+      )`.as('experience_tags'),
+    })
     .from(HostProfiles)
     .where(eq(HostProfiles.user_id, userId))
     .limit(1)
@@ -121,12 +168,12 @@ export async function getPublicHostProfileByUserId(userId: string) {
   const profile = profileRow
     ? {
         image_url: profileRow.image_url ?? '',
-        intro: profileRow.intro,
-        description: profileRow.description,
-        years_experience: profileRow.years_experience,
-        specialty: profileRow.specialty,
-        experience_summary: profileRow.experience_summary,
-        hosting_style: profileRow.hosting_style,
+        intro: profileRow.intro ?? '',
+        description: profileRow.description ?? '',
+        years_experience: profileRow.years_experience ?? 0,
+        specialty: profileRow.specialty ?? '',
+        experience_summary: profileRow.experience_summary ?? '',
+        hosting_style: profileRow.hosting_style ?? '',
         experience_tags: profileRow.experience_tags ?? [],
         languages: profileRow.languages ?? [],
       }
@@ -167,6 +214,12 @@ export async function upsertHostProfileForUser(
     throw new Error('Solo los anfitriones pueden editar este perfil.')
   }
 
+  const locale =
+    typeof input.locale === 'string' && input.locale.trim()
+      ? input.locale.trim().toLowerCase()
+      : undefined
+  const lang = locale ?? getDefaultLocale()
+
   const [existing] = await db
     .select()
     .from(HostProfiles)
@@ -176,48 +229,20 @@ export async function upsertHostProfileForUser(
   const base = existing
     ? {
         image_url: existing.image_url ?? '',
-        intro: existing.intro,
-        description: existing.description,
         years_experience: existing.years_experience,
-        specialty: existing.specialty,
-        experience_summary: existing.experience_summary,
-        hosting_style: existing.hosting_style,
-        experience_tags: existing.experience_tags ?? [],
         languages: existing.languages ?? [],
       }
-    : emptyProfileRow()
+    : { image_url: '', years_experience: 0, languages: [] as string[] }
 
-  const merged = {
+  const mergedBase = {
     image_url:
       input.image_url !== undefined
         ? clampText(input.image_url, 2048)
         : base.image_url,
-    intro:
-      input.intro !== undefined ? clampText(input.intro) : base.intro,
-    description:
-      input.description !== undefined
-        ? clampText(input.description)
-        : base.description,
     years_experience:
       input.years_experience !== undefined
         ? clampInt(input.years_experience, 0, 80)
         : base.years_experience,
-    specialty:
-      input.specialty !== undefined
-        ? clampText(input.specialty)
-        : base.specialty,
-    experience_summary:
-      input.experience_summary !== undefined
-        ? clampText(input.experience_summary)
-        : base.experience_summary,
-    hosting_style:
-      input.hosting_style !== undefined
-        ? clampText(input.hosting_style)
-        : base.hosting_style,
-    experience_tags:
-      input.experience_tags !== undefined
-        ? sanitizeStringArray(input.experience_tags)
-        : base.experience_tags,
     languages:
       input.languages !== undefined
         ? sanitizeStringArray(input.languages)
@@ -230,17 +255,108 @@ export async function upsertHostProfileForUser(
     .insert(HostProfiles)
     .values({
       user_id: userId,
-      ...merged,
+      ...mergedBase,
       created_at: now,
       updated_at: now,
     })
     .onConflictDoUpdate({
       target: HostProfiles.user_id,
       set: {
-        ...merged,
+        ...mergedBase,
         updated_at: now,
       },
     })
 
-  return getPublicHostProfileByUserId(userId)
+  const shouldUpsertTranslations =
+    input.intro !== undefined ||
+    input.description !== undefined ||
+    input.specialty !== undefined ||
+    input.experience_summary !== undefined ||
+    input.hosting_style !== undefined ||
+    input.experience_tags !== undefined
+
+  if (shouldUpsertTranslations) {
+    const [row] = await db
+      .select({ id: HostProfiles.id })
+      .from(HostProfiles)
+      .where(eq(HostProfiles.user_id, userId))
+      .limit(1)
+    const hostProfileId = row?.id
+    if (hostProfileId) {
+      const defaultLocale = getDefaultLocale()
+      const [existingTranslation] = await db
+        .select({
+          intro: HostProfileTranslations.intro,
+          description: HostProfileTranslations.description,
+          specialty: HostProfileTranslations.specialty,
+          experience_summary: HostProfileTranslations.experience_summary,
+          hosting_style: HostProfileTranslations.hosting_style,
+          experience_tags: HostProfileTranslations.experience_tags,
+        })
+        .from(HostProfileTranslations)
+        .where(
+          and(
+            eq(HostProfileTranslations.host_profile_id, hostProfileId),
+            eq(HostProfileTranslations.locale, lang),
+          ),
+        )
+        .limit(1)
+
+      const [fallbackTranslation] =
+        existingTranslation
+          ? [undefined]
+          : await db
+              .select({
+                intro: HostProfileTranslations.intro,
+                description: HostProfileTranslations.description,
+                specialty: HostProfileTranslations.specialty,
+                experience_summary: HostProfileTranslations.experience_summary,
+                hosting_style: HostProfileTranslations.hosting_style,
+                experience_tags: HostProfileTranslations.experience_tags,
+              })
+              .from(HostProfileTranslations)
+              .where(
+                and(
+                  eq(HostProfileTranslations.host_profile_id, hostProfileId),
+                  eq(HostProfileTranslations.locale, defaultLocale),
+                ),
+              )
+              .limit(1)
+
+      const baseT = existingTranslation ?? fallbackTranslation
+
+      const sourceFields = {
+        intro:
+          input.intro !== undefined ? clampText(input.intro) : baseT?.intro ?? '',
+        description:
+          input.description !== undefined
+            ? clampText(input.description)
+            : baseT?.description ?? '',
+        specialty:
+          input.specialty !== undefined
+            ? clampText(input.specialty)
+            : baseT?.specialty ?? '',
+        experience_summary:
+          input.experience_summary !== undefined
+            ? clampText(input.experience_summary)
+            : baseT?.experience_summary ?? '',
+        hosting_style:
+          input.hosting_style !== undefined
+            ? clampText(input.hosting_style)
+            : baseT?.hosting_style ?? '',
+        experience_tags:
+          input.experience_tags !== undefined
+            ? sanitizeStringArray(input.experience_tags)
+            : baseT?.experience_tags ?? [],
+      }
+
+      await saveHostProfileWithTranslations(
+        hostProfileId,
+        sourceFields,
+        locale ? lang : undefined,
+      )
+    }
+  }
+
+  return getPublicHostProfileByUserId(userId, lang)
 }

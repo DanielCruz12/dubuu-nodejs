@@ -20,7 +20,8 @@ function mapProfileErrorStatus(message: string): number {
 export const getPublicHostProfile = async (req: Request, res: Response) => {
   const { userId } = req.params
   try {
-    const data = await getPublicHostProfileByUserId(userId)
+    const locale = req.query.locale as string | undefined
+    const data = await getPublicHostProfileByUserId(userId, locale)
     res.status(200).json(data)
   } catch (error: unknown) {
     const message =

@@ -382,3 +382,54 @@ export async function detectCatalogLanguage(
 ): Promise<string> {
   return detectLanguage([fields.name, fields.description].join(' '))
 }
+
+export type HostProfileTranslatableFields = {
+  intro: string
+  description: string
+  specialty: string
+  experience_summary: string
+  hosting_style: string
+  experience_tags: string[]
+}
+
+export async function detectHostProfileLanguage(
+  fields: HostProfileTranslatableFields,
+): Promise<string> {
+  const combined = [
+    fields.intro,
+    fields.description,
+    fields.specialty,
+    fields.experience_summary,
+    fields.hosting_style,
+    ...(fields.experience_tags ?? []),
+  ]
+    .filter(Boolean)
+    .join(' ')
+  return detectLanguage(combined)
+}
+
+export async function translateHostProfileFields(
+  fields: HostProfileTranslatableFields,
+  targetLocale: string,
+  sourceLocale: string,
+): Promise<HostProfileTranslatableFields> {
+  const flat = [
+    fields.intro,
+    fields.description,
+    fields.specialty,
+    fields.experience_summary,
+    fields.hosting_style,
+    ...(fields.experience_tags ?? []),
+  ]
+  const translated = await translateTexts(flat, targetLocale, sourceLocale)
+  const fixed = 5
+  const tagsLen = (fields.experience_tags ?? []).length
+  return {
+    intro: translated[0] ?? '',
+    description: translated[1] ?? '',
+    specialty: translated[2] ?? '',
+    experience_summary: translated[3] ?? '',
+    hosting_style: translated[4] ?? '',
+    experience_tags: translated.slice(fixed, fixed + tagsLen),
+  }
+}

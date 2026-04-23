@@ -12,6 +12,7 @@ import { Faqs } from './faqs'
 import { BlogPosts } from './blog/blog-posts'
 import { BlogSections } from './blog/blog-sections'
 import { BlogCategories } from './blog/blog-categories'
+import { HostProfiles } from './host-profiles'
 import {
   ProductTypes,
   ProductCategories,
@@ -172,4 +173,22 @@ export const ProductAmenityTranslations = pgTable(
     updated_at: timestamp().notNull().defaultNow(),
   },
   (t) => [primaryKey({ columns: [t.amenity_id, t.locale] })],
+)
+
+export const HostProfileTranslations = pgTable(
+  'host_profile_translations',
+  {
+    host_profile_id: uuid('host_profile_id')
+      .notNull()
+      .references(() => HostProfiles.id, { onDelete: 'cascade' }),
+    locale: localeColumn(),
+    intro: text('intro').notNull().default(''),
+    description: text('description').notNull().default(''),
+    specialty: text('specialty').notNull().default(''),
+    experience_summary: text('experience_summary').notNull().default(''),
+    hosting_style: text('hosting_style').notNull().default(''),
+    experience_tags: text('experience_tags').array().notNull().default([]),
+    updated_at: timestamp().notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.host_profile_id, t.locale] })],
 )

@@ -8,13 +8,7 @@ export const HostProfiles = pgTable('host_profiles', {
     .notNull()
     .unique(),
   image_url: text().default('').notNull(),
-  intro: text().default('').notNull(),
-  description: text().default('').notNull(),
   years_experience: integer().default(0).notNull(),
-  specialty: text().default('').notNull(),
-  experience_summary: text().default('').notNull(),
-  hosting_style: text().default('').notNull(),
-  experience_tags: text().array().notNull().default([]),
   languages: text().array().notNull().default([]),
   created_at: timestamp().notNull().defaultNow(),
   updated_at: timestamp().notNull().defaultNow(),
