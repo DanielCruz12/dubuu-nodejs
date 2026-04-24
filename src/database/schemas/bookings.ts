@@ -13,9 +13,14 @@ import { TourDates } from './tours'
 import { BookingStatus } from '../../constants'
 
 const bookingStatusValues = [
+  BookingStatus.ACTIVE,
   BookingStatus.COMPLETED,
   BookingStatus.IN_PROCESS,
   BookingStatus.CANCELED,
+  BookingStatus.PENDING,
+  BookingStatus.REFUNDED,
+  BookingStatus.EXPIRED,
+  BookingStatus.PROCESSING,
 ] as const
 
 export const Bookings = pgTable('bookings', {

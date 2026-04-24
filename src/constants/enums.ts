@@ -8,6 +8,7 @@ export type PaymentMethodType =
 
 /** Estado de una reserva (booking) */
 export const BookingStatus = {
+  ACTIVE: 'active',
   IN_PROCESS: 'in-process',
   COMPLETED: 'completed',
   CANCELED: 'canceled',

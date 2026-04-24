@@ -200,19 +200,16 @@ export async function translateProductFields(
   targetLocale: string,
   sourceLocale: string,
 ): Promise<ProductTranslatableFields> {
-  const [name, description, address] = await translateTexts(
-    [
-      fields.name,
-      fields.description,
-      (fields.address ?? '').trim() || fields.name,
-    ],
+  const [name, description] = await translateTexts(
+    [fields.name, fields.description],
     targetLocale,
     sourceLocale,
   )
   return {
     name,
     description,
-    address: (fields.address ?? '').trim() ? address : '',
+    // La dirección/ubicación no debe traducirse: se mantiene en el idioma original.
+    address: (fields.address ?? '').trim() ? (fields.address ?? '').trim() : '',
   }
 }
 

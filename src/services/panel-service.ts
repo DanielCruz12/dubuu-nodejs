@@ -1,4 +1,4 @@
-import { and, eq, gte, lte, sql } from 'drizzle-orm'
+import { and, eq, gte, inArray, lte, sql } from 'drizzle-orm'
 import { db } from '../database/db'
 import { Bookings } from '../database/schemas/bookings'
 import {
@@ -9,6 +9,8 @@ import {
 } from '../database/schemas'
 import { getDefaultLocale } from './translation-service'
 import { BookingStatus } from '../constants'
+
+const PANEL_BOOKING_STATUSES = [BookingStatus.ACTIVE, BookingStatus.COMPLETED]
 
 /**
  * Todas las queries del panel se basan en las reservas (bookings) de los
@@ -39,7 +41,7 @@ export const getActiveReservationsCount = async (userId: string) => {
     .where(
       and(
         eq(Products.user_id, userId),
-        sql`${Bookings.status} != ${BookingStatus.CANCELED}`,
+        inArray(Bookings.status, PANEL_BOOKING_STATUSES),
       ),
     )
     .execute()
@@ -51,7 +53,7 @@ export const getActiveReservationsCount = async (userId: string) => {
     .where(
       and(
         eq(Products.user_id, userId),
-        sql`${Bookings.status} != ${BookingStatus.CANCELED}`,
+        inArray(Bookings.status, PANEL_BOOKING_STATUSES),
         gte(Bookings.created_at, startOfThisMonth),
       ),
     )
@@ -64,7 +66,7 @@ export const getActiveReservationsCount = async (userId: string) => {
     .where(
       and(
         eq(Products.user_id, userId),
-        sql`${Bookings.status} != ${BookingStatus.CANCELED}`,
+        inArray(Bookings.status, PANEL_BOOKING_STATUSES),
         gte(Bookings.created_at, startOfLastMonth),
         lte(Bookings.created_at, endOfLastMonth),
       ),
@@ -181,7 +183,7 @@ export const getFrequentTravelersCount = async (userId: string) => {
       and(
         eq(Products.user_id, userId),
         sql`${Bookings.user_id} is not null`,
-        sql`${Bookings.status} != ${BookingStatus.CANCELED}`,
+        inArray(Bookings.status, PANEL_BOOKING_STATUSES),
       ),
     )
     .groupBy(Bookings.user_id)
@@ -217,7 +219,7 @@ export const getReservationActivityLast12Months = async (userId: string) => {
     .where(
       and(
         eq(Products.user_id, userId),
-        sql`${Bookings.status} != ${BookingStatus.CANCELED}`,
+        inArray(Bookings.status, PANEL_BOOKING_STATUSES),
         gte(Bookings.created_at, start),
       ),
     )
@@ -302,6 +304,7 @@ export const getUpcomingReservations = async (
       and(
         eq(Products.user_id, userId),
         sql`coalesce(${TourDates.date}, ${Bookings.created_at}) >= ${now}`,
+        inArray(Bookings.status, PANEL_BOOKING_STATUSES),
       ),
     )
     .orderBy(
